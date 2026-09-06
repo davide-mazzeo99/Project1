@@ -14,6 +14,7 @@ import { DailyHeatmap } from '@/components/dashboard/DailyHeatmap'
 import { BudgetProgressList } from '@/components/dashboard/BudgetProgressList'
 import { TransactionEditSheet } from '@/components/transactions/TransactionEditSheet'
 import { BackupReminderBanner } from '@/components/BackupReminderBanner'
+import { AccountCards } from '@/components/dashboard/AccountCards'
 import {
   average,
   buildDailyExpenseTotals,
@@ -162,6 +163,8 @@ export function DashboardPage() {
           </div>
         )}
       </div>
+
+      <AccountCards />
 
       {noData && (
         <div className="flex flex-col items-center gap-3 rounded-2xl bg-white p-6 text-center shadow-sm dark:bg-gray-900">

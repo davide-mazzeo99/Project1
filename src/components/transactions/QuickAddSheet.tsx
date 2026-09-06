@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronDown, Pencil } from 'lucide-react'
 import { db } from '@/db/db'
@@ -14,24 +14,30 @@ import type { Category } from '@/types'
 interface QuickAddSheetProps {
   open: boolean
   onClose: () => void
+  /** Pre-selects this account (e.g. when opened from an account's detail page). */
+  defaultAccountId?: string
 }
 
-export function QuickAddSheet({ open, onClose }: QuickAddSheetProps) {
+export function QuickAddSheet({ open, onClose, defaultAccountId }: QuickAddSheetProps) {
   const { showToast } = useToast()
   const accounts = useLiveQuery(() => db.accounts.toArray(), [])
   const [buffer, setBuffer] = useState('')
-  const [accountId, setAccountId] = useState<string | null>(null)
+  const [accountId, setAccountId] = useState<string | null>(defaultAccountId ?? null)
   const [date, setDate] = useState(todayIso())
   const [description, setDescription] = useState('')
   const [showDetails, setShowDetails] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (open) setAccountId(defaultAccountId ?? null)
+  }, [open, defaultAccountId])
 
   const activeAccountId = accountId ?? accounts?.[0]?.id ?? ''
   const amount = parseAmountBuffer(buffer)
 
   function reset() {
     setBuffer('')
-    setAccountId(null)
+    setAccountId(defaultAccountId ?? null)
     setDate(todayIso())
     setDescription('')
     setShowDetails(false)
@@ -68,6 +74,26 @@ export function QuickAddSheet({ open, onClose }: QuickAddSheetProps) {
           </div>
         </div>
 
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">Conto</p>
+          <div className="grid grid-cols-2 gap-2">
+            {accounts?.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setAccountId(a.id)}
+                className={`tap-target rounded-xl border py-2 text-sm font-semibold transition-colors ${
+                  activeAccountId === a.id
+                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
+                    : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300'
+                }`}
+              >
+                {a.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <NumericKeypad
           onDigit={(d) => setBuffer((b) => appendDigit(b, d))}
           onDecimal={() => setBuffer((b) => appendDecimalSeparator(b))}
@@ -81,28 +107,14 @@ export function QuickAddSheet({ open, onClose }: QuickAddSheetProps) {
         >
           <span className="flex items-center gap-2">
             <Pencil className="h-3.5 w-3.5" />
-            {accounts?.find((a) => a.id === activeAccountId)?.name} · {formatDateShort(date)}
+            {formatDateShort(date)}
             {description ? ` · ${description}` : ''}
           </span>
           <ChevronDown className={`h-4 w-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
         </button>
 
         {showDetails && (
-          <div className="grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
-            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-              Conto
-              <select
-                value={activeAccountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-              >
-                {accounts?.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="grid grid-cols-1 gap-3 rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
             <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
               Data
               <input
@@ -112,7 +124,7 @@ export function QuickAddSheet({ open, onClose }: QuickAddSheetProps) {
                 className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
               />
             </label>
-            <label className="col-span-2 flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
               Descrizione (opzionale)
               <input
                 type="text"
