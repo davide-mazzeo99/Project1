@@ -51,12 +51,13 @@ export function PortfolioPage() {
 
   const summary = useMemo(() => computePortfolioSummary(holdings), [holdings])
   const positive = summary.totalPl >= 0
+  const hasMarketHoldings = holdings.some((h) => h.assetType !== 'accumulation')
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Portafoglio</h1>
-        {holdings.length > 0 && (
+        {hasMarketHoldings && (
           <button
             onClick={() => handleRefreshPrices(false)}
             disabled={refreshing}
@@ -100,7 +101,7 @@ export function PortfolioPage() {
 
           <ChartCard
             title="Posizioni"
-            subtitle="Tocca l'icona in alto per aggiornare i prezzi dal mercato"
+            subtitle={hasMarketHoldings ? "Tocca l'icona in alto per aggiornare i prezzi dal mercato" : undefined}
           >
             <div className="-mx-4 -my-2 divide-y divide-gray-100 dark:divide-gray-800">
               {summary.holdings.map((m) => (

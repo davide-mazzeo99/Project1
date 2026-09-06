@@ -28,6 +28,7 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
   const [avgCostInput, setAvgCostInput] = useState('')
   const [currentPriceInput, setCurrentPriceInput] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [currentValueTouched, setCurrentValueTouched] = useState(false)
 
   useEffect(() => {
     setName(initialDraft?.name ?? '')
@@ -38,22 +39,38 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
     setAvgCostInput(initialDraft ? toInputValue(initialDraft.avgCost) : '')
     setCurrentPriceInput(initialDraft ? toInputValue(initialDraft.currentPrice) : '')
     setConfirmDelete(false)
+    // Editing an existing position already has a real value; only auto-mirror for a brand new one.
+    setCurrentValueTouched(!!initialDraft?.id)
   }, [initialDraft])
 
   if (!initialDraft) return null
 
+  const isAccumulation = assetType === 'accumulation'
   const quantity = parseDecimalInput(quantityInput)
   const avgCost = parseDecimalInput(avgCostInput)
   const currentPrice = parseDecimalInput(currentPriceInput)
 
+  function handleAvgCostChange(raw: string) {
+    setAvgCostInput(raw)
+    // A new accumulation position starts at break-even until the user updates the current value themselves.
+    if (isAccumulation && !currentValueTouched) setCurrentPriceInput(raw)
+  }
+
+  function handleCurrentPriceChange(raw: string) {
+    setCurrentPriceInput(raw)
+    setCurrentValueTouched(true)
+  }
+
   async function handleSave() {
-    if (!name.trim() || quantity <= 0) return
+    if (!name.trim()) return
+    if (isAccumulation && avgCost <= 0) return
+    if (!isAccumulation && quantity <= 0) return
     const payload = {
       name,
       assetType,
       ticker: ticker || undefined,
       isin: isin || undefined,
-      quantity,
+      quantity: isAccumulation ? 1 : quantity,
       avgCost,
       currentPrice,
       priceIsLive: false,
@@ -117,8 +134,8 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
 
         <div>
           <p className="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">Tipo</p>
-          <div className="grid grid-cols-2 gap-2">
-            {(['security', 'crypto'] as const).map((type) => (
+          <div className="grid grid-cols-3 gap-2">
+            {(['security', 'crypto', 'accumulation'] as const).map((type) => (
               <button
                 key={type}
                 type="button"
@@ -129,68 +146,74 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
                     : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300'
                 }`}
               >
-                {type === 'security' ? 'Azione/ETF' : 'Cripto'}
+                {type === 'security' ? 'Azione/ETF' : type === 'crypto' ? 'Cripto' : 'Ad accumulo'}
               </button>
             ))}
           </div>
           <p className="mt-1 text-[11px] text-gray-400">
             {assetType === 'crypto'
               ? 'Il prezzo si aggiorna da CoinGecko usando il ticker qui sotto (es. BTC).'
-              : 'Il prezzo si aggiorna da Twelve Data usando il ticker, se hai impostato una API key in Impostazioni.'}
+              : assetType === 'security'
+                ? 'Il prezzo si aggiorna da Twelve Data usando il ticker, se hai impostato una API key in Impostazioni.'
+                : 'Per un piano di accumulo (PAC) senza una quantità di quote da seguire: aggiorna a mano il capitale versato e il valore attuale quando controlli la app della piattaforma.'}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {!isAccumulation && (
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+              Ticker (opzionale)
+              <input
+                type="text"
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+              ISIN (opzionale)
+              <input
+                type="text"
+                value={isin}
+                onChange={(e) => setIsin(e.target.value)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              />
+            </label>
+          </div>
+        )}
+
+        {!isAccumulation && (
           <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-            Ticker (opzionale)
+            Quantità
             <input
               type="text"
-              value={ticker}
-              onChange={(e) => setTicker(e.target.value)}
+              inputMode="decimal"
+              value={quantityInput}
+              onChange={(e) => setQuantityInput(e.target.value)}
+              placeholder="Es. 0,015"
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-            ISIN (opzionale)
-            <input
-              type="text"
-              value={isin}
-              onChange={(e) => setIsin(e.target.value)}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-            />
-          </label>
-        </div>
-
-        <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-          Quantità
-          <input
-            type="text"
-            inputMode="decimal"
-            value={quantityInput}
-            onChange={(e) => setQuantityInput(e.target.value)}
-            placeholder="Es. 0,015"
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-          />
-        </label>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-            Prezzo medio carico (€)
+            {isAccumulation ? 'Capitale versato (€)' : 'Prezzo medio carico (€)'}
             <input
               type="text"
               inputMode="decimal"
               value={avgCostInput}
-              onChange={(e) => setAvgCostInput(e.target.value)}
+              onChange={(e) => handleAvgCostChange(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-            Prezzo attuale (€)
+            {isAccumulation ? 'Valore attuale (€)' : 'Prezzo attuale (€)'}
             <input
               type="text"
               inputMode="decimal"
               value={currentPriceInput}
-              onChange={(e) => setCurrentPriceInput(e.target.value)}
+              onChange={(e) => handleCurrentPriceChange(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </label>

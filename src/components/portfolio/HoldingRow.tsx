@@ -22,7 +22,10 @@ export function HoldingRow({ metrics, onTap }: { metrics: HoldingMetrics; onTap:
           )}
         </div>
         <span className="text-xs text-gray-400">
-          {holding.quantity} × {formatCurrency(holding.currentPrice)} · peso {formatPercent(weight)}
+          {holding.assetType === 'accumulation'
+            ? `Versato ${formatCurrency(holding.avgCost)}`
+            : `${holding.quantity} × ${formatCurrency(holding.currentPrice)}`}{' '}
+          · peso {formatPercent(weight)}
         </span>
       </div>
       <div className="shrink-0 text-right">

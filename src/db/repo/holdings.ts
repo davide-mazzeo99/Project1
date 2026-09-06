@@ -40,6 +40,8 @@ export async function refreshHoldingPrices(apiKey: string | undefined): Promise<
 
   await Promise.all(
     holdings.map(async (holding) => {
+      if (holding.assetType === 'accumulation') return
+
       const isCrypto = holding.assetType === 'crypto'
       const query = holding.ticker?.trim() || holding.name.trim()
       if (!query) {
