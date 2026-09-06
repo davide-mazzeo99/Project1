@@ -1,33 +1,38 @@
+import { lazy, Suspense } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/ui/Toast'
-import { DashboardPage } from '@/pages/DashboardPage'
-import { TransactionsPage } from '@/pages/TransactionsPage'
-import { PortfolioPage } from '@/pages/PortfolioPage'
-import { BudgetPage } from '@/pages/BudgetPage'
-import { SettingsPage } from '@/pages/SettingsPage'
-import { CategoriesPage } from '@/pages/CategoriesPage'
-import { ImportPage } from '@/pages/ImportPage'
-import { RulesPage } from '@/pages/RulesPage'
+import { PageLoading } from '@/components/PageLoading'
+
+const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const TransactionsPage = lazy(() => import('@/pages/TransactionsPage').then((m) => ({ default: m.TransactionsPage })))
+const PortfolioPage = lazy(() => import('@/pages/PortfolioPage').then((m) => ({ default: m.PortfolioPage })))
+const BudgetPage = lazy(() => import('@/pages/BudgetPage').then((m) => ({ default: m.BudgetPage })))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const CategoriesPage = lazy(() => import('@/pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage })))
+const ImportPage = lazy(() => import('@/pages/ImportPage').then((m) => ({ default: m.ImportPage })))
+const RulesPage = lazy(() => import('@/pages/RulesPage').then((m) => ({ default: m.RulesPage })))
 
 export default function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
         <HashRouter>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/transazioni" element={<TransactionsPage />} />
-              <Route path="/portafoglio" element={<PortfolioPage />} />
-              <Route path="/budget" element={<BudgetPage />} />
-              <Route path="/impostazioni" element={<SettingsPage />} />
-              <Route path="/impostazioni/categorie" element={<CategoriesPage />} />
-              <Route path="/importa" element={<ImportPage />} />
-              <Route path="/impostazioni/regole" element={<RulesPage />} />
-            </Route>
-          </Routes>
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/transazioni" element={<TransactionsPage />} />
+                <Route path="/portafoglio" element={<PortfolioPage />} />
+                <Route path="/budget" element={<BudgetPage />} />
+                <Route path="/impostazioni" element={<SettingsPage />} />
+                <Route path="/impostazioni/categorie" element={<CategoriesPage />} />
+                <Route path="/importa" element={<ImportPage />} />
+                <Route path="/impostazioni/regole" element={<RulesPage />} />
+              </Route>
+            </Routes>
+          </Suspense>
         </HashRouter>
       </ToastProvider>
     </ErrorBoundary>

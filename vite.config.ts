@@ -83,4 +83,15 @@ export default defineConfig({
   server: {
     host: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ['recharts'],
+          dexie: ['dexie', 'dexie-react-hooks'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
 })
