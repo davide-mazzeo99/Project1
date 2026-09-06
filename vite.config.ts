@@ -3,20 +3,26 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'node:path'
 
+// Configurable at build time so the same app can be served from the root
+// (local dev, self-hosting) or from a subpath like GitHub Pages
+// (https://<user>.github.io/<repo>/) without code changes.
+const base = process.env.VITE_BASE_PATH || '/'
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon.png'],
       manifest: {
-        id: '/',
+        id: base,
         name: 'Budget',
         short_name: 'Budget',
         description: 'Gestione budget personale — Santander & Trade Republic',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         display_override: ['standalone', 'fullscreen'],
         background_color: '#0b1220',
@@ -57,7 +63,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         runtimeCaching: [
           {
             urlPattern: ({ request }) =>

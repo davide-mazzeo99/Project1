@@ -31,6 +31,34 @@ npm run build      # genera dist/ (include service worker e manifest)
 npm run preview    # serve dist/ in locale per verificarla prima del deploy
 ```
 
+Per servire l'app da un sotto-percorso (es. GitHub Pages,
+`https://<utente>.github.io/<repo>/`) invece che dalla radice, passa la
+variabile `VITE_BASE_PATH`:
+
+```bash
+VITE_BASE_PATH=/nome-repo/ npm run build
+```
+
+## Deploy su GitHub Pages
+
+Il repository include un workflow (`.github/workflows/deploy-pages.yml`) che
+builda e pubblica l'app automaticamente ad ogni push su `main` (oppure
+avviabile a mano dalla tab **Actions** del repo con "Run workflow").
+
+Per attivarlo la prima volta serve un unico passaggio manuale, che solo il
+proprietario del repository può fare (il workflow da solo non può abilitare
+Pages):
+
+1. Vai su **Settings → Pages** del repository su GitHub.
+2. In **Build and deployment → Source** scegli **GitHub Actions**.
+3. Fai un push su `main` (o lancia il workflow manualmente): dopo un paio di
+   minuti l'app sarà live su `https://<utente>.github.io/<repo>/`.
+
+Da lì è installabile su iPhone allo stesso modo descritto sotto, semplicemente
+aprendo quell'URL in Safari invece dell'indirizzo della rete locale — con il
+vantaggio di un indirizzo stabile che non cambia ad ogni riavvio del dev
+server.
+
 ## Installare la PWA sull'iPhone (dalla rete locale)
 
 1. Sullo stesso Mac/PC dove hai il progetto, lancia il dev server o il
