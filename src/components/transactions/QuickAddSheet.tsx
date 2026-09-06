@@ -6,8 +6,8 @@ import { Sheet } from '@/components/ui/Sheet'
 import { NumericKeypad } from '@/components/transactions/NumericKeypad'
 import { CategoryGrid } from '@/components/transactions/CategoryGrid'
 import { appendDecimalSeparator, appendDigit, backspace, displayAmountBuffer, parseAmountBuffer } from '@/lib/amount'
-import { addTransaction } from '@/db/repo/transactions'
-import { todayIso, formatDateShort } from '@/lib/format'
+import { addTransaction, createSantanderToTradeRepublicTransfer } from '@/db/repo/transactions'
+import { todayIso, formatDateShort, formatCurrency } from '@/lib/format'
 import { useToast } from '@/components/ui/Toast'
 import type { Category } from '@/types'
 
@@ -44,7 +44,27 @@ export function QuickAddSheet({ open, onClose, defaultAccountId }: QuickAddSheet
   }
 
   async function handleSelectCategory(category: Category) {
-    if (amount <= 0 || !activeAccountId || saving) return
+    if (amount <= 0 || saving) return
+
+    if (category.type === 'transfer') {
+      setSaving(true)
+      try {
+        await createSantanderToTradeRepublicTransfer({
+          amount,
+          date,
+          categoryId: category.id,
+          description: description.trim() || undefined,
+        })
+        showToast(`Trasferiti ${formatCurrency(amount)} da Santander a Trade Republic`)
+        reset()
+        onClose()
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+
+    if (!activeAccountId) return
     setSaving(true)
     const signedAmount = category.type === 'income' ? Math.abs(amount) : -Math.abs(amount)
     try {
@@ -55,7 +75,7 @@ export function QuickAddSheet({ open, onClose, defaultAccountId }: QuickAddSheet
         description: description.trim() || category.name,
         categoryId: category.id,
         isRecurring: false,
-        isTransfer: category.type === 'transfer',
+        isTransfer: false,
       })
       showToast('Transazione salvata')
       reset()
@@ -140,6 +160,9 @@ export function QuickAddSheet({ open, onClose, defaultAccountId }: QuickAddSheet
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
             {amount > 0 ? 'Scegli una categoria per salvare' : 'Inserisci un importo, poi scegli la categoria'}
+          </p>
+          <p className="mb-2 -mt-1 text-[11px] text-gray-400">
+            "Trasferimenti" sposta sempre l'importo da Santander a Trade Republic, a prescindere dal conto scelto sopra.
           </p>
           <div className={amount > 0 ? '' : 'pointer-events-none opacity-40'}>
             <CategoryGrid onSelect={handleSelectCategory} />
