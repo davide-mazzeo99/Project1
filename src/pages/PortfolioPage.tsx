@@ -13,31 +13,45 @@ import { useToast } from '@/components/ui/Toast'
 import { formatCurrency, formatPercent } from '@/lib/format'
 import type { Holding } from '@/types'
 
+/** While la scheda Portafoglio resta aperta, riprova a scaricare i prezzi a questo intervallo. */
+const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000
+
 export function PortfolioPage() {
   const { showToast } = useToast()
   const holdings = useLiveQuery(() => db.holdings.toArray(), [], [] as Holding[])
   const settings = useLiveQuery(() => db.settings.get('settings'), [])
   const [draft, setDraft] = useState<HoldingDraft | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null)
   const autoRefreshedRef = useRef(false)
+  const refreshingRef = useRef(false)
 
   useEffect(() => {
     ensureMonthlySnapshot()
   }, [holdings.length])
 
   async function handleRefreshPrices(silent = false) {
-    if (holdings.length === 0 || refreshing) return
+    if (holdings.length === 0 || refreshingRef.current) return
+    refreshingRef.current = true
     setRefreshing(true)
     try {
-      const { updated, failed } = await refreshHoldingPrices(settings?.priceApiKey)
+      const { updated, failed, missingApiKey } = await refreshHoldingPrices(settings?.priceApiKey, settings?.coinGeckoApiKey)
+      setLastRefreshAt(new Date())
       if (!silent || updated > 0) {
         if (updated === 0) {
-          showToast(failed > 0 ? 'Nessun prezzo aggiornato (offline o ticker non riconosciuti)' : 'Nessuna posizione da aggiornare')
+          if (missingApiKey > 0 && missingApiKey === failed) {
+            showToast('Manca la API key Twelve Data in Impostazioni per azioni/obbligazionari')
+          } else if (failed > 0) {
+            showToast('Nessun prezzo aggiornato (offline, ticker non riconosciuti o dominio non autorizzato su Twelve Data)')
+          } else {
+            showToast('Nessuna posizione da aggiornare')
+          }
         } else {
           showToast(`${updated} prezzi aggiornati${failed > 0 ? `, ${failed} non trovati` : ''}`)
         }
       }
     } finally {
+      refreshingRef.current = false
       setRefreshing(false)
     }
   }
@@ -49,22 +63,38 @@ export function PortfolioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holdings.length])
 
+  // Mantiene i prezzi "live": riprova periodicamente finché la scheda resta aperta.
+  useEffect(() => {
+    if (holdings.length === 0) return
+    const id = setInterval(() => handleRefreshPrices(true), AUTO_REFRESH_INTERVAL_MS)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holdings.length, settings?.priceApiKey, settings?.coinGeckoApiKey])
+
   const summary = useMemo(() => computePortfolioSummary(holdings), [holdings])
   const positive = summary.totalPl >= 0
+  const hasMarketHoldings = holdings.some((h) => h.assetType !== 'accumulation')
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Portafoglio</h1>
-        {holdings.length > 0 && (
-          <button
-            onClick={() => handleRefreshPrices(false)}
-            disabled={refreshing}
-            aria-label="Aggiorna prezzi"
-            className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 disabled:opacity-50 dark:text-gray-400 dark:active:bg-gray-800"
-          >
-            <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
+        {hasMarketHoldings && (
+          <div className="flex items-center gap-2">
+            {lastRefreshAt && (
+              <span className="text-[11px] text-gray-400">
+                Aggiornato alle {lastRefreshAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+            <button
+              onClick={() => handleRefreshPrices(false)}
+              disabled={refreshing}
+              aria-label="Aggiorna prezzi"
+              className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 disabled:opacity-50 dark:text-gray-400 dark:active:bg-gray-800"
+            >
+              <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         )}
       </div>
 
@@ -100,7 +130,11 @@ export function PortfolioPage() {
 
           <ChartCard
             title="Posizioni"
-            subtitle="Tocca l'icona in alto per aggiornare i prezzi dal mercato"
+            subtitle={
+              hasMarketHoldings
+                ? "Si aggiorna da sola ogni 5 minuti mentre resti su questa scheda, o tocca l'icona in alto"
+                : undefined
+            }
           >
             <div className="-mx-4 -my-2 divide-y divide-gray-100 dark:divide-gray-800">
               {summary.holdings.map((m) => (

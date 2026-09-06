@@ -26,20 +26,26 @@ export async function updatePrice(id: string, price: number): Promise<void> {
 export interface RefreshResult {
   updated: number
   failed: number
+  /** Di quanti `failed` la causa è certa: manca la API key Twelve Data richiesta per azioni/obbligazionari. */
+  missingApiKey: number
 }
 
 /**
  * Refreshes every holding's price from the market, best-effort: crypto via CoinGecko
- * (no key needed), securities via Twelve Data (needs `apiKey`, skipped silently if absent).
- * Never throws — offline or rate-limited holdings just keep their last manual price.
+ * (works without a key for light usage, more reliable with the optional `coinGeckoApiKey`),
+ * securities/bonds via Twelve Data (needs `apiKey`, skipped as `missingApiKey` if absent).
+ * Never throws — offline, rate-limited or unrecognised holdings just keep their last price.
  */
-export async function refreshHoldingPrices(apiKey: string | undefined): Promise<RefreshResult> {
+export async function refreshHoldingPrices(apiKey: string | undefined, coinGeckoApiKey?: string): Promise<RefreshResult> {
   const holdings = await db.holdings.toArray()
   let updated = 0
   let failed = 0
+  let missingApiKey = 0
 
   await Promise.all(
     holdings.map(async (holding) => {
+      if (holding.assetType === 'accumulation') return
+
       const isCrypto = holding.assetType === 'crypto'
       const query = holding.ticker?.trim() || holding.name.trim()
       if (!query) {
@@ -48,7 +54,7 @@ export async function refreshHoldingPrices(apiKey: string | undefined): Promise<
       }
 
       if (isCrypto) {
-        const result = await fetchCryptoPrice(query, holding.coinGeckoId)
+        const result = await fetchCryptoPrice(query, holding.coinGeckoId, coinGeckoApiKey)
         if (!result) {
           failed++
           return
@@ -65,6 +71,7 @@ export async function refreshHoldingPrices(apiKey: string | undefined): Promise<
 
       if (!apiKey) {
         failed++
+        missingApiKey++
         return
       }
       const price = await fetchSecurityPrice(query, apiKey)
@@ -81,7 +88,7 @@ export async function refreshHoldingPrices(apiKey: string | undefined): Promise<
     }),
   )
 
-  return { updated, failed }
+  return { updated, failed, missingApiKey }
 }
 
 /** Creates a snapshot for the current month if one doesn't already exist. */

@@ -14,13 +14,22 @@ export interface CryptoPriceResult {
   coinGeckoId: string
 }
 
-/** Resolves a ticker/name to a CoinGecko coin id and fetches its EUR price. */
-export async function fetchCryptoPrice(query: string, cachedCoinGeckoId?: string): Promise<CryptoPriceResult | null> {
+/**
+ * Resolves a ticker/name to a CoinGecko coin id and fetches its EUR price.
+ * `apiKey` is an optional free "Demo" key (coingecko.com/en/developers/dashboard) — CoinGecko
+ * has been tightening anonymous access over time, so a key makes this far more reliable, but
+ * the lookup still tries without one since the public endpoint keeps working for light usage.
+ */
+export async function fetchCryptoPrice(
+  query: string,
+  cachedCoinGeckoId?: string,
+  apiKey?: string,
+): Promise<CryptoPriceResult | null> {
   try {
-    const coinId = cachedCoinGeckoId ?? (await resolveCoinGeckoId(query))
+    const coinId = cachedCoinGeckoId ?? (await resolveCoinGeckoId(query, apiKey))
     if (!coinId) return null
 
-    const res = await fetch(`${COINGECKO_BASE}/simple/price?ids=${encodeURIComponent(coinId)}&vs_currencies=eur`)
+    const res = await fetch(withDemoKey(`${COINGECKO_BASE}/simple/price?ids=${encodeURIComponent(coinId)}&vs_currencies=eur`, apiKey))
     if (!res.ok) return null
     const data = await res.json()
     const price = data?.[coinId]?.eur
@@ -31,9 +40,13 @@ export async function fetchCryptoPrice(query: string, cachedCoinGeckoId?: string
   }
 }
 
-async function resolveCoinGeckoId(query: string): Promise<string | null> {
+function withDemoKey(url: string, apiKey?: string): string {
+  return apiKey?.trim() ? `${url}&x_cg_demo_api_key=${encodeURIComponent(apiKey.trim())}` : url
+}
+
+async function resolveCoinGeckoId(query: string, apiKey?: string): Promise<string | null> {
   try {
-    const res = await fetch(`${COINGECKO_BASE}/search?query=${encodeURIComponent(query)}`)
+    const res = await fetch(withDemoKey(`${COINGECKO_BASE}/search?query=${encodeURIComponent(query)}`, apiKey))
     if (!res.ok) return null
     const data = await res.json()
     const coins = data?.coins as { id: string; symbol: string }[] | undefined

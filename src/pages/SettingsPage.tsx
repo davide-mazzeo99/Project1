@@ -13,6 +13,7 @@ export function SettingsPage() {
   const { showToast } = useToast()
   const settings = useLiveQuery(() => db.settings.get('settings'), [])
   const [apiKey, setApiKey] = useState('')
+  const [coinGeckoApiKey, setCoinGeckoApiKey] = useState('')
   const people = useLiveQuery(() => db.people.toArray(), [], [] as Person[])
   const transactions = useLiveQuery(() => db.transactions.toArray(), [], [] as Transaction[])
   const totalOwedToMe = useMemo(
@@ -22,10 +23,16 @@ export function SettingsPage() {
 
   useEffect(() => {
     setApiKey(settings?.priceApiKey ?? '')
-  }, [settings?.priceApiKey])
+    setCoinGeckoApiKey(settings?.coinGeckoApiKey ?? '')
+  }, [settings?.priceApiKey, settings?.coinGeckoApiKey])
 
   async function handleSaveApiKey() {
     await db.settings.update('settings', { priceApiKey: apiKey.trim() || undefined })
+    showToast('Preferenze salvate')
+  }
+
+  async function handleSaveCoinGeckoApiKey() {
+    await db.settings.update('settings', { coinGeckoApiKey: coinGeckoApiKey.trim() || undefined })
     showToast('Preferenze salvate')
   }
 
@@ -68,7 +75,7 @@ export function SettingsPage() {
       <h2 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-gray-400">Portafoglio</h2>
       <div className="rounded-xl bg-white p-3.5 shadow-sm dark:bg-gray-900">
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-          API key Twelve Data (opzionale, per azioni/ETF)
+          API key Twelve Data (per azionario e obbligazionario)
           <input
             type="text"
             value={apiKey}
@@ -79,14 +86,40 @@ export function SettingsPage() {
           />
         </label>
         <p className="mt-2 text-xs text-gray-400">
-          Aprendo la scheda Portafoglio (o toccando l'icona di aggiornamento) l'app prova a scaricare i prezzi
-          correnti: le posizioni in cripto usano CoinGecko, gratis e senza chiave; azioni ed ETF usano{' '}
+          Serve una API key gratuita tua da{' '}
           <a href="https://twelvedata.com/pricing" target="_blank" rel="noreferrer" className="underline">
             Twelve Data
+          </a>{' '}
+          (creane una sul loro sito e incollala qui). Se i prezzi non si aggiornano nonostante la chiave sia
+          corretta, controlla nella dashboard Twelve Data, sotto "API Usage" → domini autorizzati, che il dominio
+          da cui apri l'app sia nell'elenco: senza questo il browser blocca la richiesta.
+        </p>
+
+        <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+          API key CoinGecko Demo (opzionale, per le cripto)
+          <input
+            type="text"
+            value={coinGeckoApiKey}
+            onChange={(e) => setCoinGeckoApiKey(e.target.value)}
+            onBlur={handleSaveCoinGeckoApiKey}
+            placeholder="Non configurata"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+          />
+        </label>
+        <p className="mt-2 text-xs text-gray-400">
+          Le cripto si aggiornano da{' '}
+          <a href="https://www.coingecko.com/en/developers/dashboard" target="_blank" rel="noreferrer" className="underline">
+            CoinGecko
           </a>
-          , per cui serve una API key gratuita tua (creane una sul loro sito e incollala qui). Il prezzo resta
-          sempre modificabile a mano dal Portafoglio, e se sei offline o la chiave manca l'app continua a
-          funzionare con l'ultimo prezzo salvato — nessuna funzione smette di funzionare senza rete.
+          : funziona anche senza chiave con un uso leggero, ma se i prezzi smettono di aggiornarsi crea una chiave
+          "Demo" gratuita sul loro sito e incollala qui per un accesso più affidabile.
+        </p>
+
+        <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-400 dark:border-gray-800">
+          Ogni volta che apri la scheda Portafoglio, e poi ogni 5 minuti mentre la tieni aperta, l'app riprova
+          automaticamente ad aggiornare tutti i prezzi — puoi anche forzarlo subito con l'icona in alto nella
+          scheda. Il prezzo resta comunque sempre modificabile a mano, e se sei offline o una chiave manca l'app
+          continua a funzionare con l'ultimo prezzo salvato — nessuna funzione smette di funzionare senza rete.
         </p>
       </div>
 

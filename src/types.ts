@@ -68,18 +68,21 @@ export interface Rule {
   createdAt: number
 }
 
-export type AssetType = 'security' | 'crypto'
+export type AssetType = 'security' | 'bond' | 'crypto' | 'accumulation'
 
 export interface Holding {
   id: string
   name: string
   ticker?: string
   isin?: string
+  /** Per 'accumulation' resta sempre 1: non c'è una quantità di quote da tracciare. */
   quantity: number
+  /** Per 'accumulation' è il capitale versato totale, non un prezzo per unità. */
   avgCost: number
+  /** Per 'accumulation' è il valore attuale totale, non un prezzo per unità. */
   currentPrice: number
   lastPriceUpdate: string
-  /** 'crypto' looks up the price on CoinGecko, 'security' (default) on Twelve Data. */
+  /** 'crypto' looks up the price on CoinGecko, 'security' on Twelve Data, 'accumulation' (es. PAC ETF) è sempre manuale. */
   assetType?: AssetType
   /** Resolved CoinGecko coin id, cached after the first successful lookup by ticker. */
   coinGeckoId?: string
@@ -122,6 +125,9 @@ export interface ImportPreset {
 export interface Settings {
   id: string
   lastBackupAt?: number
+  /** Twelve Data API key, per azioni/ETF/obbligazionari. */
   priceApiKey?: string
+  /** CoinGecko "Demo" API key (opzionale), per rendere più affidabile l'aggiornamento cripto. */
+  coinGeckoApiKey?: string
   seedLoaded?: boolean
 }
