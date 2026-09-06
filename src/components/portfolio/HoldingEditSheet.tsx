@@ -29,21 +29,27 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
   const [currentPriceInput, setCurrentPriceInput] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [currentValueTouched, setCurrentValueTouched] = useState(false)
+  // Non azzerare alla chiusura: la Sheet resta montata durante l'animazione di uscita e senza
+  // questi dati mostrerebbe una scheda vuota mentre scompare.
+  const [lastDraft, setLastDraft] = useState<HoldingDraft | null>(initialDraft)
 
   useEffect(() => {
-    setName(initialDraft?.name ?? '')
-    setAssetType(initialDraft?.assetType ?? 'security')
-    setTicker(initialDraft?.ticker ?? '')
-    setIsin(initialDraft?.isin ?? '')
-    setQuantityInput(initialDraft ? toInputValue(initialDraft.quantity) : '')
-    setAvgCostInput(initialDraft ? toInputValue(initialDraft.avgCost) : '')
-    setCurrentPriceInput(initialDraft ? toInputValue(initialDraft.currentPrice) : '')
+    if (!initialDraft) return
+    setLastDraft(initialDraft)
+    setName(initialDraft.name)
+    setAssetType(initialDraft.assetType ?? 'security')
+    setTicker(initialDraft.ticker ?? '')
+    setIsin(initialDraft.isin ?? '')
+    setQuantityInput(toInputValue(initialDraft.quantity))
+    setAvgCostInput(toInputValue(initialDraft.avgCost))
+    setCurrentPriceInput(toInputValue(initialDraft.currentPrice))
     setConfirmDelete(false)
     // Editing an existing position already has a real value; only auto-mirror for a brand new one.
-    setCurrentValueTouched(!!initialDraft?.id)
+    setCurrentValueTouched(!!initialDraft.id)
   }, [initialDraft])
 
-  if (!initialDraft) return null
+  if (!lastDraft) return null
+  const draft = lastDraft
 
   const isAccumulation = assetType === 'accumulation'
   const quantity = parseDecimalInput(quantityInput)
@@ -75,10 +81,10 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
       currentPrice,
       priceIsLive: false,
       // Changing asset type invalidates any cached CoinGecko id from a previous lookup.
-      coinGeckoId: assetType === 'crypto' ? initialDraft!.coinGeckoId : undefined,
+      coinGeckoId: assetType === 'crypto' ? draft.coinGeckoId : undefined,
     }
-    if (initialDraft!.id) {
-      await updateHolding(initialDraft!.id, payload)
+    if (draft.id) {
+      await updateHolding(draft.id, payload)
       showToast('Posizione aggiornata')
     } else {
       await addHolding(payload)
@@ -88,8 +94,8 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
   }
 
   async function handleDelete() {
-    if (!initialDraft?.id) return
-    await deleteHolding(initialDraft.id)
+    if (!draft.id) return
+    await deleteHolding(draft.id)
     showToast('Posizione eliminata')
     onClose()
   }
@@ -98,10 +104,10 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
     <Sheet
       open={!!initialDraft}
       onClose={onClose}
-      title={initialDraft.id ? 'Modifica posizione' : 'Nuova posizione'}
+      title={draft.id ? 'Modifica posizione' : 'Nuova posizione'}
       footer={
         <div className="flex gap-2">
-          {initialDraft.id && (
+          {draft.id && (
             <button
               onClick={() => (confirmDelete ? handleDelete() : setConfirmDelete(true))}
               className={`tap-target flex items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold ${
@@ -226,10 +232,10 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
             />
           </label>
         </div>
-        {initialDraft.lastPriceUpdate && (
+        {draft.lastPriceUpdate && (
           <p className="text-xs text-gray-400">
-            Prezzo {initialDraft.priceIsLive ? 'aggiornato dal mercato' : 'inserito a mano'} il{' '}
-            {formatDateShort(initialDraft.lastPriceUpdate)}
+            Prezzo {draft.priceIsLive ? 'aggiornato dal mercato' : 'inserito a mano'} il{' '}
+            {formatDateShort(draft.lastPriceUpdate)}
           </p>
         )}
       </div>

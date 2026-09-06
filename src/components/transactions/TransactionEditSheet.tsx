@@ -29,14 +29,17 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
   const [splits, setSplits] = useState<TransactionSplit[]>([])
 
   useEffect(() => {
+    // Non azzerare `form` alla chiusura: la Sheet resta montata durante l'animazione di uscita
+    // e senza dati mostrerebbe una scheda vuota mentre scompare.
+    if (!transaction) return
     setForm(transaction)
-    setAmountInput(transaction ? String(Math.abs(transaction.amount)) : '')
+    setAmountInput(String(Math.abs(transaction.amount)))
     setConfirmDelete(false)
-    setWasUncategorized(!transaction?.categoryId)
+    setWasUncategorized(!transaction.categoryId)
     setMakeRule(false)
-    setRulePattern(transaction?.description.trim() ?? '')
-    setSplitEnabled(!!transaction?.splits?.length)
-    setSplits(transaction?.splits ?? [])
+    setRulePattern(transaction.description.trim())
+    setSplitEnabled(!!transaction.splits?.length)
+    setSplits(transaction.splits ?? [])
   }, [transaction])
 
   if (!form) return null
