@@ -14,6 +14,12 @@ export function HoldingRow({ metrics, onTap }: { metrics: HoldingMetrics; onTap:
         <div className="flex items-baseline gap-1.5">
           <span className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{holding.name}</span>
           {holding.ticker && <span className="shrink-0 text-xs text-gray-400">{holding.ticker}</span>}
+          {holding.priceIsLive && (
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+              title="Prezzo aggiornato dal mercato"
+            />
+          )}
         </div>
         <span className="text-xs text-gray-400">
           {holding.quantity} × {formatCurrency(holding.currentPrice)} · peso {formatPercent(weight)}

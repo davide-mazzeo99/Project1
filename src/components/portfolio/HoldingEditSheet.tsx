@@ -5,7 +5,7 @@ import { addHolding, deleteHolding, updateHolding } from '@/db/repo/holdings'
 import { useToast } from '@/components/ui/Toast'
 import { parseDecimalInput } from '@/lib/amount'
 import { formatDateShort } from '@/lib/format'
-import type { Holding } from '@/types'
+import type { AssetType, Holding } from '@/types'
 
 export type HoldingDraft = Omit<Holding, 'id' | 'lastPriceUpdate'> & { id?: string; lastPriceUpdate?: string }
 
@@ -21,6 +21,7 @@ function toInputValue(value: number): string {
 export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSheetProps) {
   const { showToast } = useToast()
   const [name, setName] = useState('')
+  const [assetType, setAssetType] = useState<AssetType>('security')
   const [ticker, setTicker] = useState('')
   const [isin, setIsin] = useState('')
   const [quantityInput, setQuantityInput] = useState('')
@@ -30,6 +31,7 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
 
   useEffect(() => {
     setName(initialDraft?.name ?? '')
+    setAssetType(initialDraft?.assetType ?? 'security')
     setTicker(initialDraft?.ticker ?? '')
     setIsin(initialDraft?.isin ?? '')
     setQuantityInput(initialDraft ? toInputValue(initialDraft.quantity) : '')
@@ -48,11 +50,15 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
     if (!name.trim() || quantity <= 0) return
     const payload = {
       name,
+      assetType,
       ticker: ticker || undefined,
       isin: isin || undefined,
       quantity,
       avgCost,
       currentPrice,
+      priceIsLive: false,
+      // Changing asset type invalidates any cached CoinGecko id from a previous lookup.
+      coinGeckoId: assetType === 'crypto' ? initialDraft!.coinGeckoId : undefined,
     }
     if (initialDraft!.id) {
       await updateHolding(initialDraft!.id, payload)
@@ -108,6 +114,31 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
           />
         </label>
+
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">Tipo</p>
+          <div className="grid grid-cols-2 gap-2">
+            {(['security', 'crypto'] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setAssetType(type)}
+                className={`tap-target rounded-xl border py-2 text-sm font-semibold transition-colors ${
+                  assetType === type
+                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
+                    : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300'
+                }`}
+              >
+                {type === 'security' ? 'Azione/ETF' : 'Cripto'}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-[11px] text-gray-400">
+            {assetType === 'crypto'
+              ? 'Il prezzo si aggiorna da CoinGecko usando il ticker qui sotto (es. BTC).'
+              : 'Il prezzo si aggiorna da Twelve Data usando il ticker, se hai impostato una API key in Impostazioni.'}
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -165,7 +196,10 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
           </label>
         </div>
         {initialDraft.lastPriceUpdate && (
-          <p className="text-xs text-gray-400">Prezzo aggiornato il {formatDateShort(initialDraft.lastPriceUpdate)}</p>
+          <p className="text-xs text-gray-400">
+            Prezzo {initialDraft.priceIsLive ? 'aggiornato dal mercato' : 'inserito a mano'} il{' '}
+            {formatDateShort(initialDraft.lastPriceUpdate)}
+          </p>
         )}
       </div>
     </Sheet>

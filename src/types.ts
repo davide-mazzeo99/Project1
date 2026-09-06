@@ -53,6 +53,8 @@ export interface Rule {
   createdAt: number
 }
 
+export type AssetType = 'security' | 'crypto'
+
 export interface Holding {
   id: string
   name: string
@@ -62,6 +64,12 @@ export interface Holding {
   avgCost: number
   currentPrice: number
   lastPriceUpdate: string
+  /** 'crypto' looks up the price on CoinGecko, 'security' (default) on Twelve Data. */
+  assetType?: AssetType
+  /** Resolved CoinGecko coin id, cached after the first successful lookup by ticker. */
+  coinGeckoId?: string
+  /** true if lastPriceUpdate came from an automatic market lookup rather than a manual edit. */
+  priceIsLive?: boolean
 }
 
 export interface PortfolioSnapshot {
