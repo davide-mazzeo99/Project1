@@ -13,6 +13,13 @@ export interface Account {
   openingBalance?: number
 }
 
+export interface TransactionSplit {
+  personId: string
+  /** Positive amount owed by this person for their share of the expense. */
+  amount: number
+  settled: boolean
+}
+
 export interface Transaction {
   id: string
   accountId: string
@@ -31,6 +38,14 @@ export interface Transaction {
   tags: string[]
   createdAt: number
   updatedAt: number
+  /** Quote di questa spesa dovute da altre persone (es. coinquilino) — il resto è "mio". */
+  splits?: TransactionSplit[]
+}
+
+/** Someone you split shared expenses with (e.g. a flatmate) — not an app user, just a name for the ledger. */
+export interface Person {
+  id: string
+  name: string
 }
 
 export interface Category {

@@ -5,6 +5,7 @@ import type {
   Category,
   Holding,
   ImportPreset,
+  Person,
   PortfolioSnapshot,
   Rule,
   Settings,
@@ -21,6 +22,7 @@ export class BudgetDB extends Dexie {
   budgets!: Table<Budget, string>
   importPresets!: Table<ImportPreset, string>
   settings!: Table<Settings, string>
+  people!: Table<Person, string>
 
   constructor() {
     super('budget-db')
@@ -36,6 +38,10 @@ export class BudgetDB extends Dexie {
       budgets: 'id, month, categoryId, [month+categoryId]',
       importPresets: 'id, institution',
       settings: 'id',
+    })
+
+    this.version(2).stores({
+      people: 'id, name',
     })
   }
 }

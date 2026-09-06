@@ -4,11 +4,12 @@ import { Copy, Trash2 } from 'lucide-react'
 import { db } from '@/db/db'
 import { Sheet } from '@/components/ui/Sheet'
 import { CategoryGrid } from '@/components/transactions/CategoryGrid'
+import { SplitEditor } from '@/components/transactions/SplitEditor'
 import { deleteTransaction, duplicateTransaction, updateTransaction } from '@/db/repo/transactions'
 import { createRule } from '@/db/repo/rules'
 import { useToast } from '@/components/ui/Toast'
 import { parseDecimalInput } from '@/lib/amount'
-import type { Transaction } from '@/types'
+import type { Transaction, TransactionSplit } from '@/types'
 
 interface TransactionEditSheetProps {
   transaction: Transaction | null
@@ -24,6 +25,8 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
   const [wasUncategorized, setWasUncategorized] = useState(false)
   const [makeRule, setMakeRule] = useState(false)
   const [rulePattern, setRulePattern] = useState('')
+  const [splitEnabled, setSplitEnabled] = useState(false)
+  const [splits, setSplits] = useState<TransactionSplit[]>([])
 
   useEffect(() => {
     setForm(transaction)
@@ -32,6 +35,8 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
     setWasUncategorized(!transaction?.categoryId)
     setMakeRule(false)
     setRulePattern(transaction?.description.trim() ?? '')
+    setSplitEnabled(!!transaction?.splits?.length)
+    setSplits(transaction?.splits ?? [])
   }, [transaction])
 
   if (!form) return null
@@ -50,6 +55,7 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
       isRecurring: form.isRecurring,
       isTransfer: form.isTransfer,
       notes: form.notes,
+      splits: splitEnabled ? splits.filter((s) => s.amount > 0) : [],
     })
     if (justCategorized && makeRule && rulePattern.trim() && form.categoryId) {
       await createRule({ matchType: 'contains', pattern: rulePattern.trim(), categoryId: form.categoryId })
@@ -201,6 +207,28 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
             onSelect={(cat) => setForm({ ...form, categoryId: cat.id, isTransfer: cat.type === 'transfer' })}
           />
         </div>
+
+        {isExpenseLike && (
+          <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
+            <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+              Dividi con qualcuno
+              <input
+                type="checkbox"
+                checked={splitEnabled}
+                onChange={(e) => {
+                  setSplitEnabled(e.target.checked)
+                  if (!e.target.checked) setSplits([])
+                }}
+                className="h-5 w-5"
+              />
+            </label>
+            {splitEnabled && (
+              <div className="mt-3">
+                <SplitEditor totalAmount={Math.abs(form.amount)} splits={splits} onChange={setSplits} />
+              </div>
+            )}
+          </div>
+        )}
 
         {justCategorized && (
           <div className="rounded-xl bg-brand-50 p-3 dark:bg-brand-900/20">

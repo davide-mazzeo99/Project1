@@ -1,4 +1,5 @@
 import { addMonths, format, parseISO, subMonths } from 'date-fns'
+import { personalAmount } from '@/lib/analytics/splits'
 import type { Category, Transaction } from '@/types'
 
 export const RENT_CATEGORY_ID = 'cat-affitto'
@@ -23,12 +24,16 @@ function isTransferLike(t: Transaction, category: Category | undefined): boolean
   return t.isTransfer || category?.type === 'transfer'
 }
 
-/** True for transactions that count as "real" spending: not income, not a transfer, not an investment. */
+/**
+ * True for transactions that count as "real" personal spending: not income, not a
+ * transfer, not an investment, and — if split with someone else — only for the part
+ * of the amount that's actually mine (a fully-reimbursed expense isn't a personal one).
+ */
 export function isRealExpense(t: Transaction, category: Category | undefined): boolean {
-  return t.amount < 0 && !isTransferLike(t, category) && category?.type !== 'investment'
+  return personalAmount(t) < 0 && !isTransferLike(t, category) && category?.type !== 'investment'
 }
 
-/** Per-day total of real expenses (absolute value) for the given month, keyed by ISO date. */
+/** Per-day total of real expenses (absolute value, net of what others owe) for the given month, keyed by ISO date. */
 export function buildDailyExpenseTotals(
   transactions: Transaction[],
   categoryById: Map<string, Category>,
@@ -39,7 +44,7 @@ export function buildDailyExpenseTotals(
     if (!t.date.startsWith(month)) continue
     const category = t.categoryId ? categoryById.get(t.categoryId) : undefined
     if (!isRealExpense(t, category)) continue
-    totals.set(t.date, (totals.get(t.date) ?? 0) + Math.abs(t.amount))
+    totals.set(t.date, (totals.get(t.date) ?? 0) + Math.abs(personalAmount(t)))
   }
   return totals
 }
@@ -69,12 +74,15 @@ export function computeMonthlyStats(
       investments += Math.abs(t.amount)
       continue
     }
-    if (t.amount > 0) {
-      income += t.amount
+
+    const mine = personalAmount(t)
+    if (mine === 0) continue // fully reimbursed by someone else: not mine at all
+    if (mine > 0) {
+      income += mine
       continue
     }
 
-    const absAmount = Math.abs(t.amount)
+    const absAmount = Math.abs(mine)
     expenses += absAmount
     const key = category?.id ?? UNCATEGORIZED_KEY
     categoryTotals.set(key, (categoryTotals.get(key) ?? 0) + absAmount)
