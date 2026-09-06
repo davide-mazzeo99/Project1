@@ -68,7 +68,7 @@ export interface Rule {
   createdAt: number
 }
 
-export type AssetType = 'security' | 'crypto' | 'accumulation'
+export type AssetType = 'security' | 'bond' | 'crypto' | 'accumulation'
 
 export interface Holding {
   id: string
@@ -125,6 +125,9 @@ export interface ImportPreset {
 export interface Settings {
   id: string
   lastBackupAt?: number
+  /** Twelve Data API key, per azioni/ETF/obbligazionari. */
   priceApiKey?: string
+  /** CoinGecko "Demo" API key (opzionale), per rendere più affidabile l'aggiornamento cripto. */
+  coinGeckoApiKey?: string
   seedLoaded?: boolean
 }

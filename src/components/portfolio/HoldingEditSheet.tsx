@@ -134,8 +134,8 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
 
         <div>
           <p className="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">Tipo</p>
-          <div className="grid grid-cols-3 gap-2">
-            {(['security', 'crypto', 'accumulation'] as const).map((type) => (
+          <div className="grid grid-cols-2 gap-2">
+            {(['security', 'bond', 'crypto', 'accumulation'] as const).map((type) => (
               <button
                 key={type}
                 type="button"
@@ -146,7 +146,13 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
                     : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300'
                 }`}
               >
-                {type === 'security' ? 'Azione/ETF' : type === 'crypto' ? 'Cripto' : 'Ad accumulo'}
+                {type === 'security'
+                  ? 'Azionario'
+                  : type === 'bond'
+                    ? 'Obbligazionario'
+                    : type === 'crypto'
+                      ? 'Cripto'
+                      : 'Ad accumulo'}
               </button>
             ))}
           </div>
@@ -154,8 +160,10 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
             {assetType === 'crypto'
               ? 'Il prezzo si aggiorna da CoinGecko usando il ticker qui sotto (es. BTC).'
               : assetType === 'security'
-                ? 'Il prezzo si aggiorna da Twelve Data usando il ticker, se hai impostato una API key in Impostazioni.'
-                : 'Per un piano di accumulo (PAC) senza una quantità di quote da seguire: aggiorna a mano il capitale versato e il valore attuale quando controlli la app della piattaforma.'}
+                ? 'Azioni singole o ETF azionari: il prezzo si aggiorna da Twelve Data usando il ticker, se hai impostato una API key in Impostazioni.'
+                : assetType === 'bond'
+                  ? 'Titoli di stato, obbligazioni o ETF/fondi a reddito fisso: il prezzo si aggiorna da Twelve Data usando il ticker, come per l\'azionario.'
+                  : 'Per un piano di accumulo (PAC) senza una quantità di quote da seguire: aggiorna a mano il capitale versato e il valore attuale quando controlli la app della piattaforma.'}
           </p>
         </div>
 
