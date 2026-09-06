@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Search, SlidersHorizontal } from 'lucide-react'
+import { Plus, Search, SlidersHorizontal, Upload } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { db } from '@/db/db'
 import { TransactionRow } from '@/components/transactions/TransactionRow'
 import { QuickAddSheet } from '@/components/transactions/QuickAddSheet'
@@ -47,13 +48,22 @@ export function TransactionsPage() {
       <div className="sticky top-0 z-10 bg-gray-100/95 px-4 pb-2 pt-4 backdrop-blur dark:bg-gray-950/95">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Transazioni</h1>
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:text-gray-400 dark:active:bg-gray-800"
-            aria-label="Filtri"
-          >
-            <SlidersHorizontal className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              to="/importa"
+              className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:text-gray-400 dark:active:bg-gray-800"
+              aria-label="Importa CSV"
+            >
+              <Upload className="h-5 w-5" />
+            </Link>
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:text-gray-400 dark:active:bg-gray-800"
+              aria-label="Filtri"
+            >
+              <SlidersHorizontal className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm dark:bg-gray-900">

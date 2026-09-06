@@ -8,6 +8,7 @@ import { PortfolioPage } from '@/pages/PortfolioPage'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
+import { ImportPage } from '@/pages/ImportPage'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
               <Route path="/budget" element={<BudgetPage />} />
               <Route path="/impostazioni" element={<SettingsPage />} />
               <Route path="/impostazioni/categorie" element={<CategoriesPage />} />
+              <Route path="/importa" element={<ImportPage />} />
             </Route>
           </Routes>
         </HashRouter>
