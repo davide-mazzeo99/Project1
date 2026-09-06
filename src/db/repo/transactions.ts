@@ -1,0 +1,58 @@
+import { db } from '@/db/db'
+import { makeId } from '@/lib/id'
+import { todayIso } from '@/lib/format'
+import type { Transaction } from '@/types'
+
+export type NewTransactionInput = Omit<
+  Transaction,
+  'id' | 'createdAt' | 'updatedAt' | 'rawDescription' | 'importHash' | 'tags'
+> &
+  Partial<Pick<Transaction, 'tags' | 'rawDescription' | 'importHash'>>
+
+export async function addTransaction(input: NewTransactionInput): Promise<Transaction> {
+  const now = Date.now()
+  const tx: Transaction = {
+    id: makeId(),
+    tags: [],
+    rawDescription: input.description,
+    importHash: null,
+    ...input,
+    createdAt: now,
+    updatedAt: now,
+  }
+  await db.transactions.add(tx)
+  return tx
+}
+
+export async function updateTransaction(id: string, changes: Partial<Transaction>): Promise<void> {
+  await db.transactions.update(id, { ...changes, updatedAt: Date.now() })
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  await db.transactions.delete(id)
+}
+
+export async function duplicateTransaction(id: string): Promise<Transaction | undefined> {
+  const original = await db.transactions.get(id)
+  if (!original) return undefined
+  const now = Date.now()
+  const copy: Transaction = {
+    ...original,
+    id: makeId(),
+    date: todayIso(),
+    importHash: null,
+    createdAt: now,
+    updatedAt: now,
+  }
+  await db.transactions.add(copy)
+  return copy
+}
+
+export async function bulkSetCategory(ids: string[], categoryId: string): Promise<void> {
+  const now = Date.now()
+  await db.transaction('rw', db.transactions, async () => {
+    for (const id of ids) {
+      await db.transactions.update(id, { categoryId, updatedAt: now })
+    }
+  })
+}

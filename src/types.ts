@@ -1,0 +1,102 @@
+export type Institution = 'santander' | 'traderepublic'
+export type AccountType = 'checking' | 'brokerage'
+export type CategoryType = 'income' | 'expense' | 'investment' | 'transfer'
+export type MatchType = 'contains' | 'regex'
+
+export interface Account {
+  id: string
+  name: string
+  type: AccountType
+  institution: Institution
+  currency: 'EUR'
+}
+
+export interface Transaction {
+  id: string
+  accountId: string
+  /** ISO date string, YYYY-MM-DD */
+  date: string
+  /** Negative = uscita, positive = entrata */
+  amount: number
+  description: string
+  rawDescription: string
+  categoryId: string | null
+  subcategoryId?: string | null
+  isRecurring: boolean
+  isTransfer: boolean
+  importHash: string | null
+  notes?: string
+  tags: string[]
+  createdAt: number
+  updatedAt: number
+}
+
+export interface Category {
+  id: string
+  name: string
+  type: CategoryType
+  color: string
+  icon: string
+  monthlyBudget?: number
+  isFixed: boolean
+  isDefault?: boolean
+}
+
+export interface Rule {
+  id: string
+  matchType: MatchType
+  pattern: string
+  categoryId: string
+  priority: number
+  createdAt: number
+}
+
+export interface Holding {
+  id: string
+  name: string
+  ticker?: string
+  isin?: string
+  quantity: number
+  avgCost: number
+  currentPrice: number
+  lastPriceUpdate: string
+}
+
+export interface PortfolioSnapshot {
+  id: string
+  /** YYYY-MM-DD */
+  date: string
+  totalValue: number
+  totalInvested: number
+}
+
+export interface Budget {
+  id: string
+  /** YYYY-MM */
+  month: string
+  categoryId: string
+  amount: number
+}
+
+export interface ImportPreset {
+  id: string
+  name: string
+  institution: Institution | 'custom'
+  delimiter: string
+  encoding: string
+  dateColumn: number
+  amountColumn: number
+  descriptionColumn: number
+  balanceColumn?: number
+  dateFormat: 'DD/MM/YYYY' | 'YYYY-MM-DD'
+  decimalFormat: 'european' | 'standard'
+  hasHeaderRow: boolean
+  createdAt: number
+}
+
+export interface Settings {
+  id: string
+  lastBackupAt?: number
+  priceApiKey?: string
+  seedLoaded?: boolean
+}
