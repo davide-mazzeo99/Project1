@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Globe, Plus, RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { db } from '@/db/db'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { ChartCard } from '@/components/dashboard/ChartCard'
@@ -79,23 +80,32 @@ export function PortfolioPage() {
     <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Portafoglio</h1>
-        {hasMarketHoldings && (
-          <div className="flex items-center gap-2">
-            {lastRefreshAt && (
-              <span className="text-[11px] text-gray-400">
-                Aggiornato alle {lastRefreshAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
-            <button
-              onClick={() => handleRefreshPrices(false)}
-              disabled={refreshing}
-              aria-label="Aggiorna prezzi"
-              className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 disabled:opacity-50 dark:text-gray-400 dark:active:bg-gray-800"
-            >
-              <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-1">
+          <Link
+            to="/mercati"
+            aria-label="Mercati"
+            className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:text-gray-400 dark:active:bg-gray-800"
+          >
+            <Globe className="h-5 w-5" />
+          </Link>
+          {hasMarketHoldings && (
+            <div className="flex items-center gap-2">
+              {lastRefreshAt && (
+                <span className="text-[11px] text-gray-400">
+                  Aggiornato alle {lastRefreshAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+              <button
+                onClick={() => handleRefreshPrices(false)}
+                disabled={refreshing}
+                aria-label="Aggiorna prezzi"
+                className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 disabled:opacity-50 dark:text-gray-400 dark:active:bg-gray-800"
+              >
+                <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {holdings.length === 0 ? (

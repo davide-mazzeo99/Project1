@@ -15,6 +15,7 @@ const ImportPage = lazy(() => import('@/pages/ImportPage').then((m) => ({ defaul
 const RulesPage = lazy(() => import('@/pages/RulesPage').then((m) => ({ default: m.RulesPage })))
 const AccountDetailPage = lazy(() => import('@/pages/AccountDetailPage').then((m) => ({ default: m.AccountDetailPage })))
 const PeoplePage = lazy(() => import('@/pages/PeoplePage').then((m) => ({ default: m.PeoplePage })))
+const MarketsPage = lazy(() => import('@/pages/MarketsPage').then((m) => ({ default: m.MarketsPage })))
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
                 <Route path="/impostazioni/regole" element={<RulesPage />} />
                 <Route path="/conti/:accountId" element={<AccountDetailPage />} />
                 <Route path="/impostazioni/persone" element={<PeoplePage />} />
+                <Route path="/mercati" element={<MarketsPage />} />
               </Route>
             </Routes>
           </Suspense>

@@ -90,6 +90,21 @@ export interface Holding {
   priceIsLive?: boolean
 }
 
+/**
+ * Indice di borsa (es. FTSE MIB, S&P 500) seguito solo per riferimento nella pagina Mercati —
+ * non è una posizione investita e non entra nei calcoli di valore/P&L del Portafoglio.
+ */
+export interface MarketIndex {
+  id: string
+  name: string
+  /** Simbolo Twelve Data — modificabile a mano se quello di default non si aggiorna. */
+  ticker: string
+  region: 'italia' | 'mondo'
+  currentPrice: number | null
+  changePercent: number | null
+  lastPriceUpdate?: string
+}
+
 export interface PortfolioSnapshot {
   id: string
   /** YYYY-MM-DD */
