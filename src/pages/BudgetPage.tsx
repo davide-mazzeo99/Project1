@@ -7,6 +7,7 @@ import { formatCurrency, formatMonthLabel, currentMonth as getCurrentMonth } fro
 import { computeMonthlyStats, shiftMonth } from '@/lib/analytics/stats'
 import { buildBudgetProgress, getEffectiveBudget } from '@/lib/analytics/budgetProgress'
 import { copyFromPreviousMonth, ensureFixedCategoryBudgets, upsertBudget } from '@/db/repo/budgets'
+import { parseDecimalInput } from '@/lib/amount'
 import { useToast } from '@/components/ui/Toast'
 import type { Budget, Category, Transaction } from '@/types'
 
@@ -43,8 +44,8 @@ export function BudgetPage() {
   }
 
   async function handleChangeBudget(categoryId: string, value: string) {
-    const amount = Number.parseFloat(value)
-    if (!Number.isFinite(amount) || amount < 0) return
+    const amount = parseDecimalInput(value)
+    if (amount < 0) return
     await upsertBudget(month, categoryId, amount)
   }
 
@@ -130,7 +131,7 @@ export function BudgetPage() {
                 </div>
                 <div className="flex shrink-0 items-center gap-1 text-sm">
                   <input
-                    type="number"
+                    type="text"
                     inputMode="decimal"
                     defaultValue={budgetValue ?? ''}
                     onBlur={(e) => handleChangeBudget(category.id, e.target.value)}

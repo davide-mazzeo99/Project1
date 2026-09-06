@@ -1,15 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronRight, Tag, Wand2 } from 'lucide-react'
+import { ChevronRight, Tag, Users, Wand2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { db } from '@/db/db'
 import { useToast } from '@/components/ui/Toast'
 import { BackupSection } from '@/components/settings/BackupSection'
+import { computePersonBalances } from '@/lib/analytics/splits'
+import { formatCurrency } from '@/lib/format'
+import type { Person, Transaction } from '@/types'
 
 export function SettingsPage() {
   const { showToast } = useToast()
   const settings = useLiveQuery(() => db.settings.get('settings'), [])
   const [apiKey, setApiKey] = useState('')
+  const people = useLiveQuery(() => db.people.toArray(), [], [] as Person[])
+  const transactions = useLiveQuery(() => db.transactions.toArray(), [], [] as Transaction[])
+  const totalOwedToMe = useMemo(
+    () => computePersonBalances(transactions, people).reduce((sum, b) => sum + b.totalOwed, 0),
+    [transactions, people],
+  )
 
   useEffect(() => {
     setApiKey(settings?.priceApiKey ?? '')
@@ -41,12 +50,25 @@ export function SettingsPage() {
           <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">Regole di categorizzazione</span>
           <ChevronRight className="h-4 w-4 text-gray-300" />
         </Link>
+        <Link
+          to="/impostazioni/persone"
+          className="tap-target flex items-center gap-3 px-3 py-3 active:bg-gray-50 dark:active:bg-gray-800/60"
+        >
+          <Users className="h-5 w-5 text-gray-400" />
+          <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">Persone</span>
+          {totalOwedToMe > 0 && (
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+              {formatCurrency(totalOwedToMe)}
+            </span>
+          )}
+          <ChevronRight className="h-4 w-4 text-gray-300" />
+        </Link>
       </div>
 
       <h2 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-gray-400">Portafoglio</h2>
       <div className="rounded-xl bg-white p-3.5 shadow-sm dark:bg-gray-900">
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-          API key prezzi (opzionale)
+          API key Twelve Data (opzionale, per azioni/ETF)
           <input
             type="text"
             value={apiKey}
@@ -57,9 +79,14 @@ export function SettingsPage() {
           />
         </label>
         <p className="mt-2 text-xs text-gray-400">
-          In questa versione i prezzi si aggiornano solo manualmente dalla scheda Portafoglio: nessuna chiamata di
-          rete viene mai fatta. Il campo è pronto per un eventuale aggiornamento automatico futuro — l'app continuerà
-          comunque a funzionare interamente offline anche senza chiave impostata.
+          Aprendo la scheda Portafoglio (o toccando l'icona di aggiornamento) l'app prova a scaricare i prezzi
+          correnti: le posizioni in cripto usano CoinGecko, gratis e senza chiave; azioni ed ETF usano{' '}
+          <a href="https://twelvedata.com/pricing" target="_blank" rel="noreferrer" className="underline">
+            Twelve Data
+          </a>
+          , per cui serve una API key gratuita tua (creane una sul loro sito e incollala qui). Il prezzo resta
+          sempre modificabile a mano dal Portafoglio, e se sei offline o la chiave manca l'app continua a
+          funzionare con l'ultimo prezzo salvato — nessuna funzione smette di funzionare senza rete.
         </p>
       </div>
 

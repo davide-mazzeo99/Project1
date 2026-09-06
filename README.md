@@ -111,7 +111,10 @@ ripartire da zero.
   nel tempo, heatmap spese giornaliere).
 - **Portafoglio**: posizioni con P/L assoluto e percentuale, allocazione,
   distinzione tra capitale versato e rendimento non realizzato, snapshot
-  mensile automatico.
+  mensile automatico. Prezzi aggiornabili dal mercato (cripto via CoinGecko,
+  gratis; azioni/ETF via Twelve Data, richiede una tua API key gratuita in
+  Impostazioni) all'apertura della pagina o a un tocco — sempre modificabili
+  a mano, e senza mai bloccare l'app se sei offline.
 - **Budget**: per categoria, con copia dal mese precedente, categorie fisse
   precompilate automaticamente, avvisi visivi al superamento.
 - **Backup**: export/import completo in JSON, export CSV delle transazioni
@@ -125,10 +128,11 @@ ripartire da zero.
   — al primo import ti guida nella mappatura delle colonne una volta sola,
   poi la salva come preset e la riapplica automaticamente ai successivi
   import dello stesso istituto.
-- **Prezzi del portafoglio**: in questa versione l'aggiornamento è sempre
-  manuale. Le Impostazioni hanno un campo per una futura API key di prezzi,
-  ma nessuna chiamata di rete viene mai effettuata: l'app resta
-  completamente utilizzabile offline.
+- **Prezzi del portafoglio**: cripto e azioni/ETF si aggiornano dal mercato
+  (CoinGecko/Twelve Data) quando c'è rete, con fallback silenzioso all'ultimo
+  prezzo salvato se sei offline o non hai configurato una API key — questa è
+  l'unica funzione dell'app che fa chiamate di rete, ed è per design
+  "best-effort": nessun'altra funzionalità dipende da internet.
 - **Routing**: l'app usa `HashRouter` (URL del tipo `/#/transazioni`)
   invece del routing "pulito", scelta deliberata per funzionare senza
   configurazione server su qualsiasi hosting statico e per gestire

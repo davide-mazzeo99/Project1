@@ -1,4 +1,6 @@
+import { Users } from 'lucide-react'
 import { CategoryIcon } from '@/lib/icons'
+import { personalAmount } from '@/lib/analytics/splits'
 import { formatCurrency } from '@/lib/format'
 import type { Category, Transaction } from '@/types'
 
@@ -13,6 +15,8 @@ interface TransactionRowProps {
 
 export function TransactionRow({ transaction, category, accountName, selected, selectionMode, onTap }: TransactionRowProps) {
   const positive = transaction.amount > 0
+  const isSplit = !!transaction.splits?.length
+  const mine = personalAmount(transaction)
 
   return (
     <button
@@ -38,11 +42,15 @@ export function TransactionRow({ transaction, category, accountName, selected, s
         <CategoryIcon name={category?.icon ?? 'more-horizontal'} className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-          {transaction.description || category?.name || 'Senza descrizione'}
+        <span className="flex items-center gap-1">
+          <span className="block truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+            {transaction.description || category?.name || 'Senza descrizione'}
+          </span>
+          {isSplit && <Users className="h-3 w-3 shrink-0 text-gray-400" />}
         </span>
         <span className="block truncate text-xs text-gray-400">
           {category?.name ?? 'Da categorizzare'} · {accountName}
+          {isSplit && ` · tua quota ${formatCurrency(mine)}`}
         </span>
       </span>
       <span

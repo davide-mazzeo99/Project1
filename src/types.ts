@@ -13,6 +13,13 @@ export interface Account {
   openingBalance?: number
 }
 
+export interface TransactionSplit {
+  personId: string
+  /** Positive amount owed by this person for their share of the expense. */
+  amount: number
+  settled: boolean
+}
+
 export interface Transaction {
   id: string
   accountId: string
@@ -31,6 +38,14 @@ export interface Transaction {
   tags: string[]
   createdAt: number
   updatedAt: number
+  /** Quote di questa spesa dovute da altre persone (es. coinquilino) — il resto è "mio". */
+  splits?: TransactionSplit[]
+}
+
+/** Someone you split shared expenses with (e.g. a flatmate) — not an app user, just a name for the ledger. */
+export interface Person {
+  id: string
+  name: string
 }
 
 export interface Category {
@@ -53,6 +68,8 @@ export interface Rule {
   createdAt: number
 }
 
+export type AssetType = 'security' | 'crypto'
+
 export interface Holding {
   id: string
   name: string
@@ -62,6 +79,12 @@ export interface Holding {
   avgCost: number
   currentPrice: number
   lastPriceUpdate: string
+  /** 'crypto' looks up the price on CoinGecko, 'security' (default) on Twelve Data. */
+  assetType?: AssetType
+  /** Resolved CoinGecko coin id, cached after the first successful lookup by ticker. */
+  coinGeckoId?: string
+  /** true if lastPriceUpdate came from an automatic market lookup rather than a manual edit. */
+  priceIsLive?: boolean
 }
 
 export interface PortfolioSnapshot {

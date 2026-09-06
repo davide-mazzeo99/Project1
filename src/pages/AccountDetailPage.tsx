@@ -7,6 +7,7 @@ import { TransactionRow } from '@/components/transactions/TransactionRow'
 import { QuickAddSheet } from '@/components/transactions/QuickAddSheet'
 import { TransactionEditSheet } from '@/components/transactions/TransactionEditSheet'
 import { computeAccountBalance, computeAccountBalanceFor } from '@/lib/analytics/accountBalance'
+import { parseDecimalInput } from '@/lib/amount'
 import { setOpeningBalance } from '@/db/repo/accounts'
 import { useToast } from '@/components/ui/Toast'
 import { formatCurrency, formatDateLabel } from '@/lib/format'
@@ -57,9 +58,7 @@ export function AccountDetailPage() {
   }, [accountTransactions])
 
   async function handleSaveOpeningBalance() {
-    const value = Number.parseFloat(openingBalanceInput.replace(',', '.'))
-    if (!Number.isFinite(value)) return
-    await setOpeningBalance(accountId, value)
+    await setOpeningBalance(accountId, parseDecimalInput(openingBalanceInput))
     showToast('Saldo iniziale aggiornato')
     setEditingOpeningBalance(false)
   }
@@ -111,9 +110,8 @@ export function AccountDetailPage() {
               </p>
               <div className="flex items-center gap-2">
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
                   value={openingBalanceInput}
                   onChange={(e) => setOpeningBalanceInput(e.target.value)}
                   className="flex-1 rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"

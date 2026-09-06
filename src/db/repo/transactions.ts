@@ -2,7 +2,7 @@ import { db } from '@/db/db'
 import { makeId } from '@/lib/id'
 import { todayIso } from '@/lib/format'
 import { SANTANDER_ACCOUNT_ID, TRADE_REPUBLIC_ACCOUNT_ID } from '@/db/bootstrap'
-import type { Transaction } from '@/types'
+import type { Transaction, TransactionSplit } from '@/types'
 
 export type NewTransactionInput = Omit<
   Transaction,
@@ -47,6 +47,17 @@ export async function duplicateTransaction(id: string): Promise<Transaction | un
   }
   await db.transactions.add(copy)
   return copy
+}
+
+export async function setTransactionSplits(id: string, splits: TransactionSplit[]): Promise<void> {
+  await db.transactions.update(id, { splits, updatedAt: Date.now() })
+}
+
+export async function setSplitSettled(transactionId: string, personId: string, settled: boolean): Promise<void> {
+  const tx = await db.transactions.get(transactionId)
+  if (!tx?.splits) return
+  const splits = tx.splits.map((s) => (s.personId === personId ? { ...s, settled } : s))
+  await db.transactions.update(transactionId, { splits, updatedAt: Date.now() })
 }
 
 export async function bulkSetCategory(ids: string[], categoryId: string): Promise<void> {
