@@ -5,6 +5,7 @@ import { CheckCircle2 } from 'lucide-react'
 interface ToastMessage {
   id: number
   text: string
+  leaving?: boolean
 }
 
 interface ToastContextValue {
@@ -13,6 +14,9 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null)
 
+/** Deve corrispondere alla duration della transizione di uscita qui sotto. */
+const EXIT_DURATION_MS = 200
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ToastMessage[]>([])
 
@@ -20,7 +24,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const id = Date.now() + Math.random()
     setMessages((prev) => [...prev, { id, text }])
     setTimeout(() => {
-      setMessages((prev) => prev.filter((m) => m.id !== id))
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, leaving: true } : m)))
+      setTimeout(() => {
+        setMessages((prev) => prev.filter((m) => m.id !== id))
+      }, EXIT_DURATION_MS)
     }, 2200)
   }, [])
 
@@ -32,7 +39,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {messages.map((m) => (
             <div
               key={m.id}
-              className="pointer-events-auto flex items-center gap-2 rounded-full bg-gray-900/95 px-4 py-2.5 text-sm font-medium text-white shadow-lg dark:bg-gray-100 dark:text-gray-900"
+              className={`pointer-events-auto flex items-center gap-2 rounded-full bg-gray-900/95 px-4 py-2.5 text-sm font-medium text-white shadow-lg transition-all duration-200 dark:bg-gray-100 dark:text-gray-900 ${
+                m.leaving ? 'translate-y-1 opacity-0' : 'animate-toast-in translate-y-0 opacity-100'
+              }`}
             >
               <CheckCircle2 className="h-4 w-4 text-emerald-400 dark:text-emerald-600" />
               {m.text}

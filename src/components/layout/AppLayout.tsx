@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { LayoutDashboard, List, PieChart, Target, Settings } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -20,11 +20,14 @@ const TABS: TabDef[] = [
 
 export function AppLayout() {
   const uncategorizedCount = useLiveQuery(() => db.transactions.filter((t) => !t.categoryId).count(), [], 0)
+  const location = useLocation()
 
   return (
     <div className="flex h-full min-h-screen flex-col bg-gray-100 pt-safe-t dark:bg-gray-950">
       <main className="no-scrollbar flex-1 overflow-y-auto pb-24">
-        <Outlet />
+        <div key={location.pathname} className="animate-route-fade">
+          <Outlet />
+        </div>
       </main>
 
       <nav

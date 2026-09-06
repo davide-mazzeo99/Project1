@@ -50,4 +50,52 @@ button {
 .tap-target {
   min-height: 44px;
   min-width: 44px;
+  transition:
+    transform 120ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+.tap-target:active {
+  transform: scale(0.96);
+}
+
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-route-fade {
+  animation: route-fade-in 220ms ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-target,
+  .tap-target:active,
+  .animate-route-fade,
+  .animate-toast-in,
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    transform: none !important;
+  }
 }
