@@ -4,6 +4,7 @@ import { ChevronRight, Tag, Wand2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { db } from '@/db/db'
 import { useToast } from '@/components/ui/Toast'
+import { BackupSection } from '@/components/settings/BackupSection'
 
 export function SettingsPage() {
   const { showToast } = useToast()
@@ -61,6 +62,8 @@ export function SettingsPage() {
           comunque a funzionare interamente offline anche senza chiave impostata.
         </p>
       </div>
+
+      <BackupSection />
     </div>
   )
 }

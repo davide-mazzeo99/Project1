@@ -13,6 +13,7 @@ import { RentRatioLineChart } from '@/components/dashboard/RentRatioLineChart'
 import { DailyHeatmap } from '@/components/dashboard/DailyHeatmap'
 import { BudgetProgressList } from '@/components/dashboard/BudgetProgressList'
 import { TransactionEditSheet } from '@/components/transactions/TransactionEditSheet'
+import { BackupReminderBanner } from '@/components/BackupReminderBanner'
 import {
   average,
   buildDailyExpenseTotals,
@@ -184,6 +185,8 @@ export function DashboardPage() {
 
       {!noData && (
         <>
+          <BackupReminderBanner />
+
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               label="Entrate"

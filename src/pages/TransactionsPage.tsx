@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CheckSquare, Plus, Search, SlidersHorizontal, Sparkles, Upload, X } from 'lucide-react'
+import { CheckSquare, Download, Plus, Search, SlidersHorizontal, Sparkles, Upload, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { db } from '@/db/db'
 import { TransactionRow } from '@/components/transactions/TransactionRow'
@@ -11,6 +11,7 @@ import { Sheet } from '@/components/ui/Sheet'
 import { useToast } from '@/components/ui/Toast'
 import { bulkSetCategory } from '@/db/repo/transactions'
 import { applyRulesToUncategorized } from '@/db/repo/rules'
+import { exportTransactionsCsv } from '@/lib/csv/exportCsv'
 import { formatCurrency, formatDateLabel } from '@/lib/format'
 import type { Category, Transaction } from '@/types'
 
@@ -91,6 +92,15 @@ export function TransactionsPage() {
     }
   }
 
+  function handleExportCsv() {
+    if (filtered.length === 0) {
+      showToast('Nessuna transazione da esportare con questi filtri')
+      return
+    }
+    exportTransactionsCsv(filtered, categoryById, accountById)
+    showToast(`${filtered.length} transazioni esportate`)
+  }
+
   return (
     <div className="pb-4">
       <div className="sticky top-0 z-10 bg-gray-100/95 px-4 pb-2 pt-4 backdrop-blur dark:bg-gray-950/95">
@@ -118,6 +128,13 @@ export function TransactionsPage() {
                 >
                   <Upload className="h-5 w-5" />
                 </Link>
+                <button
+                  onClick={handleExportCsv}
+                  className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:text-gray-400 dark:active:bg-gray-800"
+                  aria-label="Esporta CSV"
+                >
+                  <Download className="h-5 w-5" />
+                </button>
                 <button
                   onClick={() => setSelectionMode(true)}
                   className="tap-target flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:text-gray-400 dark:active:bg-gray-800"
