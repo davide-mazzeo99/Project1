@@ -73,3 +73,30 @@ export async function fetchSecurityPrice(ticker: string, apiKey: string): Promis
     return null
   }
 }
+
+export interface IndexQuoteResult {
+  price: number
+  /** Variazione percentuale rispetto alla chiusura precedente (es. 0.4 = +0,4%). */
+  changePercent: number | null
+}
+
+/**
+ * Fetches the latest quote for a market index (e.g. FTSE MIB, S&P 500) from Twelve Data's
+ * `/quote` endpoint, which — unlike `/price` — also returns the daily percent change.
+ */
+export async function fetchIndexQuote(symbol: string, apiKey: string): Promise<IndexQuoteResult | null> {
+  if (!symbol.trim() || !apiKey.trim()) return null
+  try {
+    const res = await fetch(
+      `${TWELVE_DATA_BASE}/quote?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(apiKey)}`,
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const price = Number.parseFloat(data?.close)
+    if (!Number.isFinite(price)) return null
+    const changePercent = Number.parseFloat(data?.percent_change)
+    return { price, changePercent: Number.isFinite(changePercent) ? changePercent : null }
+  } catch {
+    return null
+  }
+}

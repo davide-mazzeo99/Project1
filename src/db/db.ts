@@ -5,6 +5,7 @@ import type {
   Category,
   Holding,
   ImportPreset,
+  MarketIndex,
   Person,
   PortfolioSnapshot,
   Rule,
@@ -23,6 +24,7 @@ export class BudgetDB extends Dexie {
   importPresets!: Table<ImportPreset, string>
   settings!: Table<Settings, string>
   people!: Table<Person, string>
+  marketIndices!: Table<MarketIndex, string>
 
   constructor() {
     super('budget-db')
@@ -42,6 +44,10 @@ export class BudgetDB extends Dexie {
 
     this.version(2).stores({
       people: 'id, name',
+    })
+
+    this.version(3).stores({
+      marketIndices: 'id, region',
     })
   }
 }
