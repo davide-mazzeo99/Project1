@@ -5,6 +5,7 @@ import { db } from '@/db/db'
 import { Sheet } from '@/components/ui/Sheet'
 import { CategoryGrid } from '@/components/transactions/CategoryGrid'
 import { deleteTransaction, duplicateTransaction, updateTransaction } from '@/db/repo/transactions'
+import { createRule } from '@/db/repo/rules'
 import { useToast } from '@/components/ui/Toast'
 import type { Transaction } from '@/types'
 
@@ -18,16 +19,23 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
   const accounts = useLiveQuery(() => db.accounts.toArray(), [])
   const [form, setForm] = useState<Transaction | null>(transaction)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [wasUncategorized, setWasUncategorized] = useState(false)
+  const [makeRule, setMakeRule] = useState(false)
+  const [rulePattern, setRulePattern] = useState('')
 
   useEffect(() => {
     setForm(transaction)
     setConfirmDelete(false)
+    setWasUncategorized(!transaction?.categoryId)
+    setMakeRule(false)
+    setRulePattern(transaction?.description.trim() ?? '')
   }, [transaction])
 
   if (!form) return null
 
   const isExpenseLike = form.amount < 0
   const absAmount = Math.abs(form.amount)
+  const justCategorized = wasUncategorized && !!form.categoryId
 
   async function handleSave() {
     if (!form) return
@@ -41,7 +49,12 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
       isTransfer: form.isTransfer,
       notes: form.notes,
     })
-    showToast('Modifiche salvate')
+    if (justCategorized && makeRule && rulePattern.trim() && form.categoryId) {
+      await createRule({ matchType: 'contains', pattern: rulePattern.trim(), categoryId: form.categoryId })
+      showToast('Modifiche salvate e regola creata')
+    } else {
+      showToast('Modifiche salvate')
+    }
     onClose()
   }
 
@@ -186,6 +199,34 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
             onSelect={(cat) => setForm({ ...form, categoryId: cat.id, isTransfer: cat.type === 'transfer' })}
           />
         </div>
+
+        {justCategorized && (
+          <div className="rounded-xl bg-brand-50 p-3 dark:bg-brand-900/20">
+            <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+              Crea regola per transazioni simili
+              <input
+                type="checkbox"
+                checked={makeRule}
+                onChange={(e) => setMakeRule(e.target.checked)}
+                className="h-5 w-5"
+              />
+            </label>
+            {makeRule && (
+              <>
+                <input
+                  type="text"
+                  value={rulePattern}
+                  onChange={(e) => setRulePattern(e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Le prossime transazioni la cui descrizione contiene questo testo verranno categorizzate
+                  automaticamente.
+                </p>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </Sheet>
   )

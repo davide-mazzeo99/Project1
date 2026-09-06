@@ -3,16 +3,18 @@ import type { ImportRowResult } from '@/lib/csv/buildImportRows'
 
 interface ImportSummaryStepProps {
   results: ImportRowResult[]
+  autoCategorizedRows: number
   savePreset: boolean
   onSavePresetChange: (v: boolean) => void
   presetName: string
   onPresetNameChange: (v: string) => void
 }
 
-export function ImportSummaryStep({ results, savePreset, onSavePresetChange, presetName, onPresetNameChange }: ImportSummaryStepProps) {
+export function ImportSummaryStep({ results, autoCategorizedRows, savePreset, onSavePresetChange, presetName, onPresetNameChange }: ImportSummaryStepProps) {
   const newRows = results.filter((r) => r.valid && !r.isDuplicate)
   const duplicateRows = results.filter((r) => r.valid && r.isDuplicate)
   const invalidRows = results.filter((r) => !r.valid)
+  const toCategorize = Math.max(0, newRows.length - autoCategorizedRows)
 
   return (
     <div className="flex flex-col gap-4">
@@ -24,8 +26,9 @@ export function ImportSummaryStep({ results, savePreset, onSavePresetChange, pre
 
       {newRows.length > 0 && (
         <p className="text-xs text-gray-400">
-          Le nuove transazioni verranno importate come <strong>da categorizzare</strong>: potrai assegnare le categorie
-          dopo (o farlo fare automaticamente dalle regole, se ne hai già create).
+          {autoCategorizedRows > 0
+            ? `${autoCategorizedRows} verranno categorizzate automaticamente dalle tue regole, ${toCategorize} resteranno da categorizzare.`
+            : 'Le nuove transazioni verranno importate come da categorizzare: potrai assegnarle dopo, oppure creare delle regole.'}
         </p>
       )}
 

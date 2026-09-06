@@ -8,6 +8,7 @@ import { parseCsvRows } from '@/lib/csv/parse'
 import { guessColumns } from '@/lib/csv/columnGuess'
 import { buildImportRows, type ImportRowResult } from '@/lib/csv/buildImportRows'
 import { getPresetForInstitution, savePreset } from '@/db/repo/importPresets'
+import { findMatchingCategory } from '@/lib/rules/engine'
 import { ImportUploadStep } from '@/components/import/ImportUploadStep'
 import { ImportMappingStep, type MappingState } from '@/components/import/ImportMappingStep'
 import { ImportSummaryStep } from '@/components/import/ImportSummaryStep'
@@ -35,6 +36,7 @@ export function ImportPage() {
   const [mapping, setMapping] = useState<MappingState | null>(null)
   const [autoDetected, setAutoDetected] = useState(false)
   const [results, setResults] = useState<ImportRowResult[]>([])
+  const [autoCategoryByRow, setAutoCategoryByRow] = useState<Map<number, string>>(new Map())
   const [savePresetChecked, setSavePresetChecked] = useState(false)
   const [presetName, setPresetName] = useState('')
   const [importing, setImporting] = useState(false)
@@ -137,7 +139,19 @@ export function ImportPage() {
       ...r,
       isDuplicate: r.isDuplicate || (r.valid && existingHashes.has(r.importHash)),
     }))
+
+    const rules = await db.rules.toArray()
+    const autoCategory = new Map<number, string>()
+    if (rules.length > 0) {
+      for (const r of withDedup) {
+        if (!r.valid || r.isDuplicate) continue
+        const categoryId = findMatchingCategory(rules, r.description)
+        if (categoryId) autoCategory.set(r.rowIndex, categoryId)
+      }
+    }
+
     setResults(withDedup)
+    setAutoCategoryByRow(autoCategory)
     setStep('summary')
   }
 
@@ -148,24 +162,30 @@ export function ImportPage() {
       const toInsert = results.filter((r) => r.valid && !r.isDuplicate)
       const now = Date.now()
       const account = await db.accounts.get(accountId)
+      const transferCategoryIds = new Set(
+        (await db.categories.where('type').equals('transfer').toArray()).map((c) => c.id),
+      )
 
       await db.transaction('rw', db.transactions, db.importPresets, async () => {
         await db.transactions.bulkAdd(
-          toInsert.map((r) => ({
-            id: makeId(),
-            accountId,
-            date: r.date!,
-            amount: r.amount!,
-            description: r.description,
-            rawDescription: r.raw.join(' | '),
-            categoryId: null,
-            isRecurring: false,
-            isTransfer: false,
-            importHash: r.importHash,
-            tags: [],
-            createdAt: now,
-            updatedAt: now,
-          })),
+          toInsert.map((r) => {
+            const categoryId = autoCategoryByRow.get(r.rowIndex) ?? null
+            return {
+              id: makeId(),
+              accountId,
+              date: r.date!,
+              amount: r.amount!,
+              description: r.description,
+              rawDescription: r.raw.join(' | '),
+              categoryId,
+              isRecurring: false,
+              isTransfer: categoryId ? transferCategoryIds.has(categoryId) : false,
+              importHash: r.importHash,
+              tags: [],
+              createdAt: now,
+              updatedAt: now,
+            }
+          }),
         )
 
         if (savePresetChecked && mapping && account) {
@@ -236,6 +256,7 @@ export function ImportPage() {
         <>
           <ImportSummaryStep
             results={results}
+            autoCategorizedRows={autoCategoryByRow.size}
             savePreset={savePresetChecked}
             onSavePresetChange={setSavePresetChecked}
             presetName={presetName}

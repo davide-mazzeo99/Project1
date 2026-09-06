@@ -9,6 +9,7 @@ import { BudgetPage } from '@/pages/BudgetPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
 import { ImportPage } from '@/pages/ImportPage'
+import { RulesPage } from '@/pages/RulesPage'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="/impostazioni" element={<SettingsPage />} />
               <Route path="/impostazioni/categorie" element={<CategoriesPage />} />
               <Route path="/importa" element={<ImportPage />} />
+              <Route path="/impostazioni/regole" element={<RulesPage />} />
             </Route>
           </Routes>
         </HashRouter>
