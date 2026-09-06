@@ -9,6 +9,7 @@ import { CategoryDrilldownSheet } from '@/components/dashboard/CategoryDrilldown
 import { IncomeExpenseBarChart } from '@/components/dashboard/IncomeExpenseBarChart'
 import { SavingsRateLineChart } from '@/components/dashboard/SavingsRateLineChart'
 import { NetWorthAreaChart } from '@/components/dashboard/NetWorthAreaChart'
+import { NetWorthBreakdown } from '@/components/dashboard/NetWorthBreakdown'
 import { RentRatioLineChart } from '@/components/dashboard/RentRatioLineChart'
 import { DailyHeatmap } from '@/components/dashboard/DailyHeatmap'
 import { BudgetProgressList } from '@/components/dashboard/BudgetProgressList'
@@ -25,12 +26,13 @@ import {
   lastMonths,
   shiftMonth,
 } from '@/lib/analytics/stats'
-import { buildNetWorthSeries } from '@/lib/analytics/netWorth'
+import { buildNetWorthSeries, computeCurrentNetWorth } from '@/lib/analytics/netWorth'
+import { computePortfolioSummary } from '@/lib/analytics/portfolio'
 import { buildBudgetProgress } from '@/lib/analytics/budgetProgress'
 import { currentMonth as getCurrentMonth, formatCurrency, formatMonthLabel, formatPercent } from '@/lib/format'
 import { loadSeedData, clearSeedData } from '@/db/seed'
 import { useToast } from '@/components/ui/Toast'
-import type { Account, Budget, Category, PortfolioSnapshot, Transaction } from '@/types'
+import type { Account, Budget, Category, Holding, PortfolioSnapshot, Transaction } from '@/types'
 
 const RENT_THRESHOLD = 0.3
 
@@ -46,6 +48,7 @@ export function DashboardPage() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), [], [] as Account[])
   const budgets = useLiveQuery(() => db.budgets.toArray(), [], [] as Budget[])
   const portfolioSnapshots = useLiveQuery(() => db.portfolioSnapshots.toArray(), [], [] as PortfolioSnapshot[])
+  const holdings = useLiveQuery(() => db.holdings.toArray(), [], [] as Holding[])
   const settings = useLiveQuery(() => db.settings.get('settings'), [], undefined)
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
@@ -71,6 +74,11 @@ export function DashboardPage() {
   const netWorthSeries = useMemo(
     () => buildNetWorthSeries(transactions, accounts, months12, portfolioSnapshots),
     [transactions, accounts, months12, portfolioSnapshots],
+  )
+  const portfolioValue = useMemo(() => computePortfolioSummary(holdings).totalValue, [holdings])
+  const netWorthNow = useMemo(
+    () => computeCurrentNetWorth(accounts, transactions, portfolioValue),
+    [accounts, transactions, portfolioValue],
   )
   const dailyTotals = useMemo(
     () => buildDailyExpenseTotals(transactions, categoryById, month),
@@ -266,7 +274,8 @@ export function DashboardPage() {
             <SavingsRateLineChart series={series12} />
           </ChartCard>
 
-          <ChartCard title="Patrimonio netto" subtitle="Liquidità + portafoglio, ultimi 12 mesi">
+          <ChartCard title="Patrimonio netto" subtitle="Conti separati e portafoglio, insieme per il totale">
+            <NetWorthBreakdown data={netWorthNow} />
             <NetWorthAreaChart series={netWorthSeries} />
           </ChartCard>
 

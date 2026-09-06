@@ -1,3 +1,4 @@
+import { computeAccountBalanceFor } from '@/lib/analytics/accountBalance'
 import type { Account, PortfolioSnapshot, Transaction } from '@/types'
 
 export interface NetWorthPoint {
@@ -8,8 +9,10 @@ export interface NetWorthPoint {
 }
 
 /**
- * Cumulative liquidity (running balance of checking accounts) plus portfolio value at each
- * month-end. Portfolio value carries forward the last known snapshot (0 until one exists).
+ * Cumulative liquidity (opening balances + running balance of every account, checking and
+ * brokerage alike — e.g. uninvested cash sitting on Trade Republic still counts) plus
+ * portfolio value at each month-end. Portfolio value carries forward the last known
+ * snapshot (0 until one exists).
  */
 export function buildNetWorthSeries(
   transactions: Transaction[],
@@ -17,10 +20,8 @@ export function buildNetWorthSeries(
   months: string[],
   portfolioSnapshots: PortfolioSnapshot[],
 ): NetWorthPoint[] {
-  const checkingAccountIds = new Set(accounts.filter((a) => a.type === 'checking').map((a) => a.id))
-  const checkingTx = transactions
-    .filter((t) => checkingAccountIds.has(t.accountId))
-    .sort((a, b) => a.date.localeCompare(b.date))
+  const allTx = [...transactions].sort((a, b) => a.date.localeCompare(b.date))
+  const openingBalanceTotal = accounts.reduce((sum, a) => sum + (a.openingBalance ?? 0), 0)
 
   const snapshotByMonth = new Map<string, number>()
   for (const s of [...portfolioSnapshots].sort((a, b) => a.date.localeCompare(b.date))) {
@@ -28,14 +29,14 @@ export function buildNetWorthSeries(
   }
 
   let txPointer = 0
-  let liquidity = 0
+  let liquidity = openingBalanceTotal
   let lastPortfolioValue = 0
   const points: NetWorthPoint[] = []
 
   for (const month of months) {
     const monthEndExclusive = nextMonthKey(month)
-    while (txPointer < checkingTx.length && checkingTx[txPointer].date < `${monthEndExclusive}-01`) {
-      liquidity += checkingTx[txPointer].amount
+    while (txPointer < allTx.length && allTx[txPointer].date < `${monthEndExclusive}-01`) {
+      liquidity += allTx[txPointer].amount
       txPointer++
     }
     if (snapshotByMonth.has(month)) lastPortfolioValue = snapshotByMonth.get(month)!
@@ -43,6 +44,27 @@ export function buildNetWorthSeries(
   }
 
   return points
+}
+
+export interface NetWorthBreakdown {
+  perAccount: { account: Account; balance: number }[]
+  liquidityTotal: number
+  portfolioValue: number
+  total: number
+}
+
+/** Current net worth: every account's balance (opening balance + transactions) plus the live portfolio value. */
+export function computeCurrentNetWorth(
+  accounts: Account[],
+  transactions: Transaction[],
+  portfolioValue: number,
+): NetWorthBreakdown {
+  const perAccount = accounts.map((account) => ({
+    account,
+    balance: computeAccountBalanceFor(transactions, account),
+  }))
+  const liquidityTotal = perAccount.reduce((sum, a) => sum + a.balance, 0)
+  return { perAccount, liquidityTotal, portfolioValue, total: liquidityTotal + portfolioValue }
 }
 
 function nextMonthKey(month: string): string {

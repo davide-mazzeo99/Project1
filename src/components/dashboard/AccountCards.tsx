@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { Landmark, TrendingUp } from 'lucide-react'
 import { db } from '@/db/db'
-import { computeAccountBalance } from '@/lib/analytics/accountBalance'
+import { computeAccountBalanceFor } from '@/lib/analytics/accountBalance'
 import { formatCurrency } from '@/lib/format'
 import type { Account, Transaction } from '@/types'
 
@@ -13,7 +13,7 @@ export function AccountCards() {
   const transactions = useLiveQuery(() => db.transactions.toArray(), [], [] as Transaction[])
 
   const balances = useMemo(
-    () => new Map(accounts.map((a) => [a.id, computeAccountBalance(transactions, a.id)])),
+    () => new Map(accounts.map((a) => [a.id, computeAccountBalanceFor(transactions, a)])),
     [accounts, transactions],
   )
 

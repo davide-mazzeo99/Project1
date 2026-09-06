@@ -9,6 +9,8 @@ export interface Account {
   type: AccountType
   institution: Institution
   currency: 'EUR'
+  /** Saldo del conto prima di iniziare a registrare le transazioni in app. Sommato allo storico per il saldo attuale. */
+  openingBalance?: number
 }
 
 export interface Transaction {
