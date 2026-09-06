@@ -7,6 +7,7 @@ import { CategoryGrid } from '@/components/transactions/CategoryGrid'
 import { deleteTransaction, duplicateTransaction, updateTransaction } from '@/db/repo/transactions'
 import { createRule } from '@/db/repo/rules'
 import { useToast } from '@/components/ui/Toast'
+import { parseDecimalInput } from '@/lib/amount'
 import type { Transaction } from '@/types'
 
 interface TransactionEditSheetProps {
@@ -18,6 +19,7 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
   const { showToast } = useToast()
   const accounts = useLiveQuery(() => db.accounts.toArray(), [])
   const [form, setForm] = useState<Transaction | null>(transaction)
+  const [amountInput, setAmountInput] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [wasUncategorized, setWasUncategorized] = useState(false)
   const [makeRule, setMakeRule] = useState(false)
@@ -25,6 +27,7 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
 
   useEffect(() => {
     setForm(transaction)
+    setAmountInput(transaction ? String(Math.abs(transaction.amount)) : '')
     setConfirmDelete(false)
     setWasUncategorized(!transaction?.categoryId)
     setMakeRule(false)
@@ -34,7 +37,6 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
   if (!form) return null
 
   const isExpenseLike = form.amount < 0
-  const absAmount = Math.abs(form.amount)
   const justCategorized = wasUncategorized && !!form.categoryId
 
   async function handleSave() {
@@ -110,7 +112,7 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
             <input
               type="radio"
               checked={isExpenseLike}
-              onChange={() => setForm({ ...form, amount: -absAmount })}
+              onChange={() => setForm({ ...form, amount: -Math.abs(parseDecimalInput(amountInput)) })}
             />
             Uscita
           </label>
@@ -118,19 +120,19 @@ export function TransactionEditSheet({ transaction, onClose }: TransactionEditSh
             <input
               type="radio"
               checked={!isExpenseLike}
-              onChange={() => setForm({ ...form, amount: absAmount })}
+              onChange={() => setForm({ ...form, amount: Math.abs(parseDecimalInput(amountInput)) })}
             />
             Entrata
           </label>
         </div>
 
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
-          value={absAmount || ''}
+          value={amountInput}
           onChange={(e) => {
-            const v = Math.abs(Number.parseFloat(e.target.value) || 0)
+            setAmountInput(e.target.value)
+            const v = Math.abs(parseDecimalInput(e.target.value))
             setForm({ ...form, amount: isExpenseLike ? -v : v })
           }}
           className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-lg font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"

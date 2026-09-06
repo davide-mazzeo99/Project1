@@ -7,6 +7,7 @@ import { CategoryIcon } from '@/lib/icons'
 import { Sheet } from '@/components/ui/Sheet'
 import { useToast } from '@/components/ui/Toast'
 import { addCategory, deleteCategory, updateCategory } from '@/db/repo/categories'
+import { parseDecimalInput } from '@/lib/amount'
 import type { Category, CategoryType } from '@/types'
 
 const TYPE_LABELS: Record<CategoryType, string> = {
@@ -43,14 +44,21 @@ export function CategoriesPage() {
     [],
   )
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [monthlyBudgetInput, setMonthlyBudgetInput] = useState('')
+
+  function openDraft(d: Draft) {
+    setDraft(d)
+    setMonthlyBudgetInput(d.monthlyBudget ? String(d.monthlyBudget) : '')
+  }
 
   async function handleSave() {
     if (!draft || !draft.name.trim()) return
+    const payload = { ...draft, monthlyBudget: monthlyBudgetInput ? parseDecimalInput(monthlyBudgetInput) : undefined }
     if (draft.id) {
-      await updateCategory(draft.id, draft)
+      await updateCategory(draft.id, payload)
       showToast('Categoria aggiornata')
     } else {
-      await addCategory(draft)
+      await addCategory(payload)
       showToast('Categoria creata')
     }
     setDraft(null)
@@ -82,7 +90,7 @@ export function CategoriesPage() {
         {categories?.map((cat) => (
           <button
             key={cat.id}
-            onClick={() => setDraft(cat)}
+            onClick={() => openDraft(cat)}
             className="tap-target flex w-full items-center gap-3 px-3 py-2.5 text-left active:bg-gray-50 dark:active:bg-gray-800/60"
           >
             <span
@@ -106,7 +114,7 @@ export function CategoriesPage() {
       </div>
 
       <button
-        onClick={() => setDraft({ ...EMPTY_DRAFT })}
+        onClick={() => openDraft({ ...EMPTY_DRAFT })}
         className="tap-target mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white active:bg-brand-700"
       >
         <Plus className="h-4 w-4" /> Nuova categoria
@@ -202,12 +210,10 @@ export function CategoriesPage() {
             <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
               Budget mensile (opzionale, €)
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
-                value={draft.monthlyBudget ?? ''}
-                onChange={(e) =>
-                  setDraft({ ...draft, monthlyBudget: e.target.value ? Number.parseFloat(e.target.value) : undefined })
-                }
+                value={monthlyBudgetInput}
+                onChange={(e) => setMonthlyBudgetInput(e.target.value)}
                 className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
               />
             </label>

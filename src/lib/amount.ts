@@ -26,3 +26,16 @@ export function parseAmountBuffer(buffer: string): number {
 export function displayAmountBuffer(buffer: string): string {
   return buffer === '' ? '0' : buffer
 }
+
+/**
+ * Parses free-typed decimal input from a plain text field, accepting both "," and "."
+ * as the decimal separator (native `type="number"` inputs only accept ".", which silently
+ * rejects the comma most Italian keyboards produce — this is why those fields use
+ * `type="text" inputMode="decimal"` paired with this parser instead).
+ */
+export function parseDecimalInput(raw: string): number {
+  if (!raw) return 0
+  const normalized = raw.trim().replace(',', '.')
+  const value = Number.parseFloat(normalized)
+  return Number.isFinite(value) ? value : 0
+}

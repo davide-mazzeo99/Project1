@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
 import { addHolding, deleteHolding, updateHolding } from '@/db/repo/holdings'
 import { useToast } from '@/components/ui/Toast'
+import { parseDecimalInput } from '@/lib/amount'
 import { formatDateShort } from '@/lib/format'
 import type { Holding } from '@/types'
 
@@ -13,47 +14,59 @@ interface HoldingEditSheetProps {
   onClose: () => void
 }
 
+function toInputValue(value: number): string {
+  return value ? String(value) : ''
+}
+
 export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSheetProps) {
   const { showToast } = useToast()
-  const [draft, setDraft] = useState<HoldingDraft | null>(initialDraft)
+  const [name, setName] = useState('')
+  const [ticker, setTicker] = useState('')
+  const [isin, setIsin] = useState('')
+  const [quantityInput, setQuantityInput] = useState('')
+  const [avgCostInput, setAvgCostInput] = useState('')
+  const [currentPriceInput, setCurrentPriceInput] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
-    setDraft(initialDraft)
+    setName(initialDraft?.name ?? '')
+    setTicker(initialDraft?.ticker ?? '')
+    setIsin(initialDraft?.isin ?? '')
+    setQuantityInput(initialDraft ? toInputValue(initialDraft.quantity) : '')
+    setAvgCostInput(initialDraft ? toInputValue(initialDraft.avgCost) : '')
+    setCurrentPriceInput(initialDraft ? toInputValue(initialDraft.currentPrice) : '')
     setConfirmDelete(false)
   }, [initialDraft])
 
-  if (!draft) return null
+  if (!initialDraft) return null
+
+  const quantity = parseDecimalInput(quantityInput)
+  const avgCost = parseDecimalInput(avgCostInput)
+  const currentPrice = parseDecimalInput(currentPriceInput)
 
   async function handleSave() {
-    if (!draft || !draft.name.trim() || draft.quantity <= 0) return
-    if (draft.id) {
-      await updateHolding(draft.id, {
-        name: draft.name,
-        ticker: draft.ticker || undefined,
-        isin: draft.isin || undefined,
-        quantity: draft.quantity,
-        avgCost: draft.avgCost,
-        currentPrice: draft.currentPrice,
-      })
+    if (!name.trim() || quantity <= 0) return
+    const payload = {
+      name,
+      ticker: ticker || undefined,
+      isin: isin || undefined,
+      quantity,
+      avgCost,
+      currentPrice,
+    }
+    if (initialDraft!.id) {
+      await updateHolding(initialDraft!.id, payload)
       showToast('Posizione aggiornata')
     } else {
-      await addHolding({
-        name: draft.name,
-        ticker: draft.ticker || undefined,
-        isin: draft.isin || undefined,
-        quantity: draft.quantity,
-        avgCost: draft.avgCost,
-        currentPrice: draft.currentPrice,
-      })
+      await addHolding(payload)
       showToast('Posizione aggiunta')
     }
     onClose()
   }
 
   async function handleDelete() {
-    if (!draft?.id) return
-    await deleteHolding(draft.id)
+    if (!initialDraft?.id) return
+    await deleteHolding(initialDraft.id)
     showToast('Posizione eliminata')
     onClose()
   }
@@ -62,10 +75,10 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
     <Sheet
       open={!!initialDraft}
       onClose={onClose}
-      title={draft.id ? 'Modifica posizione' : 'Nuova posizione'}
+      title={initialDraft.id ? 'Modifica posizione' : 'Nuova posizione'}
       footer={
         <div className="flex gap-2">
-          {draft.id && (
+          {initialDraft.id && (
             <button
               onClick={() => (confirmDelete ? handleDelete() : setConfirmDelete(true))}
               className={`tap-target flex items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold ${
@@ -89,9 +102,9 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
           Nome
           <input
             type="text"
-            value={draft.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            placeholder="Es. ETF MSCI World"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Es. Bitcoin"
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
           />
         </label>
@@ -101,8 +114,8 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
             Ticker (opzionale)
             <input
               type="text"
-              value={draft.ticker ?? ''}
-              onChange={(e) => setDraft({ ...draft, ticker: e.target.value })}
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </label>
@@ -110,8 +123,8 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
             ISIN (opzionale)
             <input
               type="text"
-              value={draft.isin ?? ''}
-              onChange={(e) => setDraft({ ...draft, isin: e.target.value })}
+              value={isin}
+              onChange={(e) => setIsin(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </label>
@@ -120,10 +133,11 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
           Quantità
           <input
-            type="number"
+            type="text"
             inputMode="decimal"
-            value={draft.quantity || ''}
-            onChange={(e) => setDraft({ ...draft, quantity: Number.parseFloat(e.target.value) || 0 })}
+            value={quantityInput}
+            onChange={(e) => setQuantityInput(e.target.value)}
+            placeholder="Es. 0,015"
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
           />
         </label>
@@ -132,28 +146,26 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
           <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
             Prezzo medio carico (€)
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              value={draft.avgCost || ''}
-              onChange={(e) => setDraft({ ...draft, avgCost: Number.parseFloat(e.target.value) || 0 })}
+              value={avgCostInput}
+              onChange={(e) => setAvgCostInput(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
             Prezzo attuale (€)
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              value={draft.currentPrice || ''}
-              onChange={(e) => setDraft({ ...draft, currentPrice: Number.parseFloat(e.target.value) || 0 })}
+              value={currentPriceInput}
+              onChange={(e) => setCurrentPriceInput(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </label>
         </div>
-        {draft.lastPriceUpdate && (
-          <p className="text-xs text-gray-400">Prezzo aggiornato il {formatDateShort(draft.lastPriceUpdate)}</p>
+        {initialDraft.lastPriceUpdate && (
+          <p className="text-xs text-gray-400">Prezzo aggiornato il {formatDateShort(initialDraft.lastPriceUpdate)}</p>
         )}
       </div>
     </Sheet>
