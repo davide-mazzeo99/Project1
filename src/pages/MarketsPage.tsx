@@ -4,6 +4,7 @@ import { ChevronLeft, ExternalLink, Plus, RefreshCw, Trash2 } from 'lucide-react
 import { Link } from 'react-router-dom'
 import { db } from '@/db/db'
 import { Sheet } from '@/components/ui/Sheet'
+import { SymbolSearchPicker } from '@/components/portfolio/SymbolSearchPicker'
 import { useToast } from '@/components/ui/Toast'
 import { ensureDefaultIndices, addIndex, deleteIndex, refreshIndexPrices, updateIndexTicker } from '@/db/repo/indices'
 import { formatCurrency, formatPercent } from '@/lib/format'
@@ -225,9 +226,7 @@ export function MarketsPage() {
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
           />
         </label>
-        <p className="mt-2 text-[11px] text-gray-400">
-          Cerca il simbolo corretto su twelvedata.com se questo indice non si aggiorna.
-        </p>
+        <SymbolSearchPicker apiKey={settings?.priceApiKey} onPick={(r) => setTickerInput(r.symbol)} />
       </Sheet>
 
       <Sheet
@@ -265,6 +264,10 @@ export function MarketsPage() {
                 className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
               />
             </label>
+            <SymbolSearchPicker
+              apiKey={settings?.priceApiKey}
+              onPick={(r) => setDraft({ ...draft, ticker: r.symbol, name: draft.name || r.name })}
+            />
             <div>
               <p className="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">Regione</p>
               <div className="grid grid-cols-2 gap-2">
