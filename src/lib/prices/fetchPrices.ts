@@ -74,6 +74,41 @@ export async function fetchSecurityPrice(ticker: string, apiKey: string): Promis
   }
 }
 
+export interface SymbolSearchResult {
+  symbol: string
+  name: string
+  exchange: string
+  instrumentType: string
+}
+
+/**
+ * Cerca su Twelve Data i simboli che corrispondono a un nome o ticker (es. "FTSE MIB" o "IWDA"),
+ * cosí l'utente può scegliere quello giusto invece di doverlo indovinare — i simboli usati da
+ * Twelve Data per indici/azioni/ETF non seguono sempre le convenzioni comuni (es. Yahoo Finance).
+ */
+export async function searchSymbols(query: string, apiKey: string): Promise<SymbolSearchResult[]> {
+  if (!query.trim() || !apiKey.trim()) return []
+  try {
+    const res = await fetch(
+      `${TWELVE_DATA_BASE}/symbol_search?symbol=${encodeURIComponent(query)}&apikey=${encodeURIComponent(apiKey)}`,
+    )
+    if (!res.ok) return []
+    const data = await res.json()
+    const results = data?.data as
+      | { symbol: string; instrument_name: string; exchange: string; instrument_type: string }[]
+      | undefined
+    if (!results) return []
+    return results.map((r) => ({
+      symbol: r.symbol,
+      name: r.instrument_name,
+      exchange: r.exchange,
+      instrumentType: r.instrument_type,
+    }))
+  } catch {
+    return []
+  }
+}
+
 export interface IndexQuoteResult {
   price: number
   /** Variazione percentuale rispetto alla chiusura precedente (es. 0.4 = +0,4%). */

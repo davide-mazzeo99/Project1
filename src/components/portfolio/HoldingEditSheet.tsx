@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Trash2 } from 'lucide-react'
+import { db } from '@/db/db'
 import { Sheet } from '@/components/ui/Sheet'
+import { SymbolSearchPicker } from '@/components/portfolio/SymbolSearchPicker'
 import { addHolding, deleteHolding, updateHolding } from '@/db/repo/holdings'
 import { useToast } from '@/components/ui/Toast'
 import { parseDecimalInput } from '@/lib/amount'
@@ -20,6 +23,7 @@ function toInputValue(value: number): string {
 
 export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSheetProps) {
   const { showToast } = useToast()
+  const settings = useLiveQuery(() => db.settings.get('settings'), [])
   const [name, setName] = useState('')
   const [assetType, setAssetType] = useState<AssetType>('security')
   const [ticker, setTicker] = useState('')
@@ -194,6 +198,16 @@ export function HoldingEditSheet({ draft: initialDraft, onClose }: HoldingEditSh
               />
             </label>
           </div>
+        )}
+
+        {(assetType === 'security' || assetType === 'bond') && (
+          <SymbolSearchPicker
+            apiKey={settings?.priceApiKey}
+            onPick={(r) => {
+              setTicker(r.symbol)
+              if (!name.trim()) setName(r.name)
+            }}
+          />
         )}
 
         {!isAccumulation && (
