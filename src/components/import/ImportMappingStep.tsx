@@ -2,8 +2,11 @@ import type { DecimalFormat } from '@/lib/csv/numberFormat'
 import type { DateFormat } from '@/lib/csv/dateFormat'
 import type { DetectedEncoding } from '@/lib/csv/decode'
 
+export type SourceFormat = 'csv' | 'excel'
+
 export interface MappingState {
   hasHeaderRow: boolean
+  sourceFormat: SourceFormat
   delimiter: string
   encoding: DetectedEncoding
   dateColumn: number
@@ -145,31 +148,35 @@ export function ImportMappingStep({ rows, mapping, onChange, autoDetected }: Imp
             <option value="standard">Standard (1,234.56)</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-          Separatore
-          <select
-            value={mapping.delimiter}
-            onChange={(e) => onChange({ ...mapping, delimiter: e.target.value })}
-            className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-          >
-            {Object.entries(DELIMITER_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-          Encoding
-          <select
-            value={mapping.encoding}
-            onChange={(e) => onChange({ ...mapping, encoding: e.target.value as DetectedEncoding })}
-            className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-          >
-            <option value="utf-8">UTF-8</option>
-            <option value="iso-8859-1">ISO-8859-1</option>
-          </select>
-        </label>
+        {mapping.sourceFormat === 'csv' && (
+          <>
+            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+              Separatore
+              <select
+                value={mapping.delimiter}
+                onChange={(e) => onChange({ ...mapping, delimiter: e.target.value })}
+                className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              >
+                {Object.entries(DELIMITER_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+              Encoding
+              <select
+                value={mapping.encoding}
+                onChange={(e) => onChange({ ...mapping, encoding: e.target.value as DetectedEncoding })}
+                className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              >
+                <option value="utf-8">UTF-8</option>
+                <option value="iso-8859-1">ISO-8859-1</option>
+              </select>
+            </label>
+          </>
+        )}
       </div>
     </div>
   )

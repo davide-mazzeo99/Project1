@@ -5,6 +5,7 @@ import { db } from '@/db/db'
 import { makeId } from '@/lib/id'
 import { decodeFileText, decodeTextWith } from '@/lib/csv/decode'
 import { parseCsvRows } from '@/lib/csv/parse'
+import { parseExcelRows } from '@/lib/csv/parseExcel'
 import { guessColumns } from '@/lib/csv/columnGuess'
 import { buildImportRows, type ImportRowResult } from '@/lib/csv/buildImportRows'
 import { getPresetForInstitution, savePreset } from '@/db/repo/importPresets'
@@ -19,9 +20,13 @@ import type { Institution } from '@/types'
 type Step = 'upload' | 'mapping' | 'summary'
 
 const STEP_LABELS: Record<Step, string> = {
-  upload: 'Importa CSV',
+  upload: 'Importa estratto conto',
   mapping: 'Mappa le colonne',
   summary: 'Riepilogo import',
+}
+
+function isExcelFile(file: File): boolean {
+  return /\.xlsx?$/i.test(file.name) || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel'
 }
 
 export function ImportPage() {
@@ -45,8 +50,21 @@ export function ImportPage() {
     setUploadError(null)
     try {
       const buffer = await file.arrayBuffer()
-      const { text, encoding } = await decodeFileText(file)
-      const { rows: parsedRows, delimiter } = parseCsvRows(text)
+      const excel = isExcelFile(file)
+
+      let parsedRows: string[][]
+      let delimiter = ','
+      let encoding: MappingState['encoding'] = 'utf-8'
+
+      if (excel) {
+        parsedRows = parseExcelRows(buffer)
+      } else {
+        const decoded = await decodeFileText(file)
+        encoding = decoded.encoding
+        const parsed = parseCsvRows(decoded.text)
+        parsedRows = parsed.rows
+        delimiter = parsed.delimiter
+      }
 
       if (parsedRows.length === 0) {
         setUploadError('Il file sembra vuoto o non leggibile.')
@@ -64,6 +82,7 @@ export function ImportPage() {
       if (preset) {
         nextMapping = {
           hasHeaderRow: preset.hasHeaderRow,
+          sourceFormat: excel ? 'excel' : 'csv',
           delimiter: preset.delimiter,
           encoding: preset.encoding as MappingState['encoding'],
           dateColumn: preset.dateColumn,
@@ -77,6 +96,7 @@ export function ImportPage() {
       } else if (guess) {
         nextMapping = {
           hasHeaderRow: guess.hasHeaderRow,
+          sourceFormat: excel ? 'excel' : 'csv',
           delimiter,
           encoding,
           dateColumn: guess.dateColumn,
@@ -90,6 +110,7 @@ export function ImportPage() {
       } else {
         nextMapping = {
           hasHeaderRow: true,
+          sourceFormat: excel ? 'excel' : 'csv',
           delimiter,
           encoding,
           dateColumn: 0,
@@ -119,7 +140,7 @@ export function ImportPage() {
       setMapping(next)
       return
     }
-    if (next.encoding !== mapping.encoding || next.delimiter !== mapping.delimiter) {
+    if (next.sourceFormat === 'csv' && (next.encoding !== mapping.encoding || next.delimiter !== mapping.delimiter)) {
       const text = decodeTextWith(fileBuffer, next.encoding)
       const { rows: reparsed } = parseCsvRows(text, next.delimiter)
       setRows(reparsed)
