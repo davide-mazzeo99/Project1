@@ -36,14 +36,18 @@ export function PortfolioPage() {
     refreshingRef.current = true
     setRefreshing(true)
     try {
-      const { updated, failed, missingApiKey } = await refreshHoldingPrices(settings?.priceApiKey, settings?.coinGeckoApiKey)
+      const { updated, failed, missingApiKey, rateLimited, invalidKey } = await refreshHoldingPrices(settings?.priceApiKey, settings?.coinGeckoApiKey)
       setLastRefreshAt(new Date())
       if (!silent || updated > 0) {
         if (updated === 0) {
           if (missingApiKey > 0 && missingApiKey === failed) {
             showToast('Manca la API key Twelve Data in Impostazioni per azioni/obbligazionari')
+          } else if (invalidKey > 0) {
+            showToast('La API key Twelve Data non è valida: controllala in Impostazioni')
+          } else if (rateLimited > 0) {
+            showToast('Limite di richieste Twelve Data raggiunto: riprova tra un minuto')
           } else if (failed > 0) {
-            showToast('Nessun prezzo aggiornato (offline, ticker non riconosciuti o dominio non autorizzato su Twelve Data)')
+            showToast('Nessun prezzo aggiornato: ticker non riconosciuti o rete non disponibile')
           } else {
             showToast('Nessuna posizione da aggiornare')
           }

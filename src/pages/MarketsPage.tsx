@@ -70,13 +70,15 @@ export function MarketsPage() {
     refreshingRef.current = true
     setRefreshing(true)
     try {
-      const { updated, failed } = await refreshIndexPrices(settings?.priceApiKey)
+      const { updated, failed, rateLimited, invalidKey } = await refreshIndexPrices(settings?.priceApiKey)
       setLastRefreshAt(new Date())
       if (!silent || updated > 0) {
         if (!settings?.priceApiKey) {
           showToast('Manca la API key Twelve Data in Impostazioni')
         } else if (updated === 0) {
-          showToast(failed > 0 ? 'Nessun indice aggiornato: controlla i ticker' : 'Nessun indice da aggiornare')
+          if (invalidKey > 0) showToast('La API key Twelve Data non è valida: controllala in Impostazioni')
+          else if (rateLimited > 0) showToast('Limite di richieste Twelve Data raggiunto: riprova tra un minuto')
+          else showToast(failed > 0 ? 'Nessun indice aggiornato: controlla i ticker' : 'Nessun indice da aggiornare')
         } else {
           showToast(`${updated} indici aggiornati${failed > 0 ? `, ${failed} non trovati` : ''}`)
         }

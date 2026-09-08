@@ -1,7 +1,7 @@
 import { db } from '@/db/db'
 import { makeId } from '@/lib/id'
 import { todayIso } from '@/lib/format'
-import { fetchIndexQuote } from '@/lib/prices/fetchPrices'
+import { fetchIndexQuote, runTwelveDataBatched } from '@/lib/prices/fetchPrices'
 import type { MarketIndex } from '@/types'
 
 /**
@@ -15,11 +15,9 @@ const DEFAULT_INDICES: Array<Pick<MarketIndex, 'name' | 'ticker' | 'region'>> = 
   { name: 'Dow Jones', ticker: 'DJI', region: 'mondo' },
   { name: 'Nasdaq Composite', ticker: 'IXIC', region: 'mondo' },
   { name: 'DAX (Germania)', ticker: 'DAX', region: 'mondo' },
-  { name: 'CAC 40 (Francia)', ticker: 'CAC', region: 'mondo' },
   { name: 'FTSE 100 (Regno Unito)', ticker: 'UKX', region: 'mondo' },
   { name: 'Euro Stoxx 50', ticker: 'STOXX50E', region: 'mondo' },
   { name: 'Nikkei 225 (Giappone)', ticker: 'N225', region: 'mondo' },
-  { name: 'Hang Seng (Hong Kong)', ticker: 'HSI', region: 'mondo' },
 ]
 
 /**
@@ -63,30 +61,42 @@ export async function deleteIndex(id: string): Promise<void> {
 export interface RefreshIndicesResult {
   updated: number
   failed: number
+  /** Di quanti `failed` la causa è certa: limite di richieste al minuto di Twelve Data raggiunto. */
+  rateLimited: number
+  /** Di quanti `failed` la causa è certa: la API key Twelve Data non è valida. */
+  invalidKey: number
 }
 
-/** Aggiorna i prezzi di tutti gli indici da Twelve Data, best-effort: nessuna chiave = nessun aggiornamento. */
+/**
+ * Aggiorna i prezzi di tutti gli indici da Twelve Data, best-effort: nessuna chiave = nessun
+ * aggiornamento. Il piano gratuito di Twelve Data permette solo 8 richieste al minuto, quindi
+ * gli indici vengono interrogati a gruppi di 8 (istantaneo se sono 8 o meno) con una pausa fra
+ * un gruppo e l'altro solo se ce ne sono altri — richiederli tutti in parallelo faceva fallire
+ * ogni singola richiesta, cosa che sembrava un ticker sbagliato ma non lo era.
+ */
 export async function refreshIndexPrices(apiKey: string | undefined): Promise<RefreshIndicesResult> {
-  if (!apiKey) return { updated: 0, failed: 0 }
+  if (!apiKey) return { updated: 0, failed: 0, rateLimited: 0, invalidKey: 0 }
   const indices = await db.marketIndices.toArray()
   let updated = 0
   let failed = 0
+  let rateLimited = 0
+  let invalidKey = 0
 
-  await Promise.all(
-    indices.map(async (index) => {
-      const result = await fetchIndexQuote(index.ticker, apiKey)
-      if (!result) {
-        failed++
-        return
-      }
+  await runTwelveDataBatched(indices, async (index) => {
+    const outcome = await fetchIndexQuote(index.ticker, apiKey)
+    if (!outcome.ok) {
+      failed++
+      if (outcome.reason === 'rate_limited') rateLimited++
+      if (outcome.reason === 'invalid_key') invalidKey++
+    } else {
       await db.marketIndices.update(index.id, {
-        currentPrice: result.price,
-        changePercent: result.changePercent,
+        currentPrice: outcome.value.price,
+        changePercent: outcome.value.changePercent,
         lastPriceUpdate: todayIso(),
       })
       updated++
-    }),
-  )
+    }
+  })
 
-  return { updated, failed }
+  return { updated, failed, rateLimited, invalidKey }
 }
