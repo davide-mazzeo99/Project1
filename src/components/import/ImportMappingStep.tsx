@@ -2,7 +2,7 @@ import type { DecimalFormat } from '@/lib/csv/numberFormat'
 import type { DateFormat } from '@/lib/csv/dateFormat'
 import type { DetectedEncoding } from '@/lib/csv/decode'
 
-export type SourceFormat = 'csv' | 'excel'
+export type SourceFormat = 'csv' | 'excel' | 'pdf'
 
 export interface MappingState {
   hasHeaderRow: boolean
@@ -148,6 +148,12 @@ export function ImportMappingStep({ rows, mapping, onChange, autoDetected }: Imp
             <option value="standard">Standard (1,234.56)</option>
           </select>
         </label>
+        {mapping.sourceFormat === 'pdf' && (
+          <div className="col-span-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+            Le colonne lette da un PDF sono meno affidabili di un CSV o Excel: controlla bene l'anteprima e correggi
+            qui sotto se qualcosa non torna.
+          </div>
+        )}
         {mapping.sourceFormat === 'csv' && (
           <>
             <label className="flex flex-col gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
