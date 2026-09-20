@@ -6,6 +6,7 @@ import { makeId } from '@/lib/id'
 import { decodeFileText, decodeTextWith } from '@/lib/csv/decode'
 import { parseCsvRows } from '@/lib/csv/parse'
 import { parseExcelRows } from '@/lib/csv/parseExcel'
+import { parsePdfRows } from '@/lib/csv/parsePdf'
 import { guessColumns } from '@/lib/csv/columnGuess'
 import { buildImportRows, type ImportRowResult } from '@/lib/csv/buildImportRows'
 import { getPresetForInstitution, savePreset } from '@/db/repo/importPresets'
@@ -29,6 +30,10 @@ function isExcelFile(file: File): boolean {
   return /\.xlsx?$/i.test(file.name) || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel'
 }
 
+function isPdfFile(file: File): boolean {
+  return /\.pdf$/i.test(file.name) || file.type === 'application/pdf'
+}
+
 export function ImportPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
@@ -50,13 +55,17 @@ export function ImportPage() {
     setUploadError(null)
     try {
       const buffer = await file.arrayBuffer()
-      const excel = isExcelFile(file)
+      const pdf = isPdfFile(file)
+      const excel = !pdf && isExcelFile(file)
+      const sourceFormat: MappingState['sourceFormat'] = pdf ? 'pdf' : excel ? 'excel' : 'csv'
 
       let parsedRows: string[][]
       let delimiter = ','
       let encoding: MappingState['encoding'] = 'utf-8'
 
-      if (excel) {
+      if (pdf) {
+        parsedRows = await parsePdfRows(buffer)
+      } else if (excel) {
         parsedRows = parseExcelRows(buffer)
       } else {
         const decoded = await decodeFileText(file)
@@ -67,7 +76,11 @@ export function ImportPage() {
       }
 
       if (parsedRows.length === 0) {
-        setUploadError('Il file sembra vuoto o non leggibile.')
+        setUploadError(
+          pdf
+            ? 'Non ho trovato testo leggibile in questo PDF: se è una scansione o una foto, questo formato non è ancora supportato.'
+            : 'Il file sembra vuoto o non leggibile.',
+        )
         return
       }
 
@@ -82,7 +95,7 @@ export function ImportPage() {
       if (preset) {
         nextMapping = {
           hasHeaderRow: preset.hasHeaderRow,
-          sourceFormat: excel ? 'excel' : 'csv',
+          sourceFormat,
           delimiter: preset.delimiter,
           encoding: preset.encoding as MappingState['encoding'],
           dateColumn: preset.dateColumn,
@@ -96,7 +109,7 @@ export function ImportPage() {
       } else if (guess) {
         nextMapping = {
           hasHeaderRow: guess.hasHeaderRow,
-          sourceFormat: excel ? 'excel' : 'csv',
+          sourceFormat,
           delimiter,
           encoding,
           dateColumn: guess.dateColumn,
@@ -106,11 +119,13 @@ export function ImportPage() {
           dateFormat: guess.dateFormat,
           decimalFormat: guess.decimalFormat,
         }
-        detected = guess.confidence >= 1
+        // A PDF's columns come from a position heuristic, not a real table — never call it "auto-detected"
+        // even when the heuristic looks confident, so the user always double-checks the preview.
+        detected = guess.confidence >= 1 && !pdf
       } else {
         nextMapping = {
           hasHeaderRow: true,
-          sourceFormat: excel ? 'excel' : 'csv',
+          sourceFormat,
           delimiter,
           encoding,
           dateColumn: 0,

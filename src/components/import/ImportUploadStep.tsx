@@ -40,11 +40,11 @@ export function ImportUploadStep({ accountId, onAccountChange, onFileSelected, e
 
       <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-10 text-center dark:border-gray-700 dark:bg-gray-800/50">
         <FileUp className="h-8 w-8 text-gray-400" />
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Seleziona file CSV o Excel</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Seleziona file CSV, Excel o PDF</span>
         <span className="text-xs text-gray-400">Colonne, formato numeri e categorie rilevati automaticamente</span>
         <input
           type="file"
-          accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          accept=".csv,.txt,.xlsx,.xls,.pdf,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/pdf"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]
