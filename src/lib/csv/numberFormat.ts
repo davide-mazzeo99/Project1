@@ -9,6 +9,10 @@ export function parseAmount(raw: string, format: DecimalFormat): number | null {
   let s = raw.trim()
   if (s === '') return null
 
+  // Normalize the Unicode minus sign (U+2212, "−") to a plain ASCII hyphen — PDF-rendered
+  // statements often use it instead of "-", and it wouldn't otherwise be recognized as a sign.
+  s = s.replace(/−/g, '-')
+
   // Strip currency symbols, spaces (incl. non-breaking) and a trailing sign convention like "12,50-"
   s = s.replace(/[€$\s ]/g, '')
   let negative = false
