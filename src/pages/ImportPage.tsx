@@ -7,7 +7,7 @@ import { decodeFileText, decodeTextWith } from '@/lib/csv/decode'
 import { parseCsvRows } from '@/lib/csv/parse'
 import { parseExcelRows } from '@/lib/csv/parseExcel'
 import { parsePdfRows } from '@/lib/csv/parsePdf'
-import { guessColumns } from '@/lib/csv/columnGuess'
+import { findHeaderRowIndex, guessColumns } from '@/lib/csv/columnGuess'
 import { buildImportRows, type ImportRowResult } from '@/lib/csv/buildImportRows'
 import { getPresetForInstitution, savePreset } from '@/db/repo/importPresets'
 import { findMatchingCategory } from '@/lib/rules/engine'
@@ -83,6 +83,12 @@ export function ImportPage() {
         )
         return
       }
+
+      // Some banks print a "cover" block (account name, IBAN, current balance) before the real
+      // transaction table, in every export format — trim it so column guessing (and the mapping
+      // preview) start at the actual header instead of misreading that block as data.
+      const headerRowIndex = findHeaderRowIndex(parsedRows)
+      if (headerRowIndex) parsedRows = parsedRows.slice(headerRowIndex)
 
       const account = await db.accounts.get(accountId)
       const institution: Institution | undefined = account?.institution
