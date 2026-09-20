@@ -37,6 +37,12 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # Auto-creates the Pages site (source: GitHub Actions) if it isn't configured yet — a
+          # no-op when it already is. Without this, any time Pages gets disabled (e.g. the repo
+          # was briefly private, which unpublishes it) every future deploy fails with "Get Pages
+          # site failed... Not Found" until someone re-enables it by hand in repo Settings.
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
