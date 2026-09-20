@@ -62,6 +62,23 @@ function matchHeaderRole(header: string): ColumnRole | null {
 }
 
 /**
+ * Some banks print a "cover" block — account name, IBAN, current balance — before the actual
+ * transaction table, in every export format (seen identically in both an Excel and a PDF export
+ * of the same statement). Assuming row 0 is the header, as the rest of this file always did,
+ * misreads that cover block: e.g. a "Saldo" label a few rows up gets mistaken for the real
+ * balance column, silently offsetting every other column guess. This scans the first few rows for
+ * the one genuine header — the one naming both a date and an amount column — so the caller can
+ * trim everything above it before any column guessing happens.
+ */
+export function findHeaderRowIndex(rows: string[][], maxScan = 20): number | null {
+  for (let i = 0; i < Math.min(maxScan, rows.length); i++) {
+    const roles = new Set(rows[i].map(matchHeaderRole))
+    if (roles.has('date') && roles.has('amount')) return i
+  }
+  return null
+}
+
+/**
  * Attempts to auto-detect which columns hold date / amount / description / balance,
  * using header text keywords first and cell-content heuristics as fallback/validation.
  */
